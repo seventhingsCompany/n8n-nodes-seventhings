@@ -16,6 +16,9 @@
     "type": "git",
     "url": "git+https://github.com/seventhingscompany/n8n-nodes-seventhings.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "n8n-node build",
     "build:watch": "tsc --watch",
