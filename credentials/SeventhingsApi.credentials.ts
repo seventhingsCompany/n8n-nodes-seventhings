@@ -107,19 +107,24 @@ export class SeventhingsApi implements ICredentialType {
 		const baseUrl = buildBaseUrl(credentials.subdomain as string | undefined);
 		const username = validateEmail(credentials.username);
 
+		// The auth endpoint expects an `application/x-www-form-urlencoded` body.
+		// `helpers.httpRequest` serializes a plain object as JSON, so the body
+		// must be a `URLSearchParams` instance for it to be form-encoded (and the
+		// helper sets the matching Content-Type itself).
+		const form = new URLSearchParams({
+			username,
+			password: credentials.password as string,
+			client_id: credentials.clientId as string,
+			grant_type: 'password',
+		});
+
 		const response = (await this.helpers.httpRequest({
 			method: 'POST',
 			url: `${baseUrl}/customer-api/v1/auth_token`,
 			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded',
 				Accept: 'application/json',
 			},
-			body: {
-				username,
-				password: credentials.password as string,
-				client_id: credentials.clientId as string,
-				grant_type: 'password',
-			},
+			body: form,
 		})) as IDataObject;
 
 		const accessToken = response?.access_token;
