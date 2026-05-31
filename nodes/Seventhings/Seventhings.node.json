@@ -1,0 +1,18 @@
+{
+	"node": "n8n-nodes-base.seventhings",
+	"nodeVersion": "1.0",
+	"codexVersion": "1.0",
+	"categories": ["Productivity"],
+	"resources": {
+		"credentialDocumentation": [
+			{
+				"url": "https://github.com/seventhingscompany/n8n-nodes-seventhings?tab=readme-ov-file#credentials"
+			}
+		],
+		"primaryDocumentation": [
+			{
+				"url": "https://github.com/seventhingscompany/n8n-nodes-seventhings?tab=readme-ov-file"
+			}
+		]
+	}
+}
