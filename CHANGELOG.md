@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-06-01
+
+### Fixed
+
+- Credential authentication failed for everyone ("Authorization failed"),
+  including in 0.1.1. The hidden `sessionToken` property was declared as
+  `type: 'string'`, but n8n only runs `preAuthentication` (the login that
+  fetches and caches the token) when it finds a property that is **both**
+  `type: 'hidden'` and `expirable: true`. With `type: 'string'` the login was
+  skipped entirely, so every request — and the credential Test — went out with
+  an empty bearer token and got a 401. Changed `sessionToken` to
+  `type: 'hidden'` (keeping `password` + `expirable`), matching n8n's canonical
+  `MetabaseApi` / `CrowdStrikeOAuth2Api` credentials. The "Session Token" field
+  is now correctly hidden from the credential UI.
+
 ## [0.1.1] - 2026-06-01
 
 ### Fixed

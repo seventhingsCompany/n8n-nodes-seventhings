@@ -84,11 +84,15 @@ export class SeventhingsApi implements ICredentialType {
 				'Your client ID, found in seventhings under Integrations → Rest API',
 		},
 		{
-			// Hidden, cached bearer token. `expirable` makes n8n re-run
-			// `preAuthentication` when it is empty/expired and cache the result.
+			// Hidden, cached bearer token. n8n only runs `preAuthentication` (to
+			// fetch and cache this token) when it finds a property that is BOTH
+			// `type: 'hidden'` AND `expirable: true` — a plain `string` here makes
+			// n8n skip preAuthentication entirely, so the token never gets set and
+			// every request (and the credential test) fails with 401. Matches the
+			// canonical `MetabaseApi` / `CrowdStrikeOAuth2Api` credentials.
 			displayName: 'Session Token',
 			name: 'sessionToken',
-			type: 'string',
+			type: 'hidden',
 			typeOptions: {
 				password: true,
 				expirable: true,
