@@ -1,6 +1,6 @@
 {
   "name": "@seventhingscompany/n8n-nodes-seventhings",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "n8n community node for seventhings: manage assets, tasks, rental cases, locations, rooms and files.",
   "license": "MIT",
   "homepage": "https://seventhings.com",
@@ -11,10 +11,13 @@
     "asset-management",
     "inventory"
   ],
-  "author": { "name": "Henry Rausch", "email": "office@seventhings.com" },
+  "author": {
+    "name": "Henry Rausch",
+    "email": "office@seventhings.com"
+  },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/seventhingscompany/n8n-nodes-seventhings.git"
+    "url": "git+https://github.com/seventhingsCompany/n8n-nodes-seventhings.git"
   },
   "publishConfig": {
     "access": "public"
@@ -28,11 +31,15 @@
     "release": "n8n-node release",
     "prepublishOnly": "n8n-node prerelease"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "n8n": {
     "n8nNodesApiVersion": 1,
     "strict": true,
-    "credentials": ["dist/credentials/SeventhingsApi.credentials.js"],
+    "credentials": [
+      "dist/credentials/SeventhingsApi.credentials.js"
+    ],
     "nodes": [
       "dist/nodes/Seventhings/Seventhings.node.js",
       "dist/nodes/SeventhingsTrigger/SeventhingsTrigger.node.js"
@@ -47,5 +54,7 @@
     "release-it": "^19.0.4",
     "typescript": "5.9.2"
   },
-  "peerDependencies": { "n8n-workflow": "*" }
+  "peerDependencies": {
+    "n8n-workflow": "*"
+  }
 }
