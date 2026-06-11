@@ -1,5 +1,5 @@
 {
-	"node": "n8n-nodes-base.seventhingsTrigger",
+	"node": "@seventhingscompany/n8n-nodes-seventhings.seventhingsTrigger",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": ["Productivity"],

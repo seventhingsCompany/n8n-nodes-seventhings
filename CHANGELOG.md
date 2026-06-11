@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-06-11
+
+### Fixed
+
+- Corrected the `node` field in both codex files
+  (`Seventhings.node.json`, `SeventhingsTrigger.node.json`) to use the
+  fully-qualified `<npm-package-name>.<nodeName>` format required by n8n:
+  `@seventhingscompany/n8n-nodes-seventhings.seventhings` and
+  `@seventhingscompany/n8n-nodes-seventhings.seventhingsTrigger` (previously
+  the placeholder `n8n-nodes-base.*` prefix).
+
 ## [0.2.1] - 2026-06-11
 
 ### Changed
