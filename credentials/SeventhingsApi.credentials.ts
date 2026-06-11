@@ -1,8 +1,8 @@
 /**
- * Seventhings API credential.
+ * seventhings API credential.
  *
  * Ports the Zapier integration's `type: "session"` authentication
- * (`authentication.js`). Seventhings issues a short-lived bearer token from a
+ * (`authentication.js`). seventhings issues a short-lived bearer token from a
  * form-urlencoded password grant; every subsequent request carries it as
  * `Authorization: Bearer <token>`.
  *

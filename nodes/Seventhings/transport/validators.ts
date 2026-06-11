@@ -1,5 +1,5 @@
 /**
- * Validation + URL helpers shared by every Seventhings operation.
+ * Validation + URL helpers shared by every seventhings operation.
  *
  * Ported from the Zapier integration's `lib/request.js` (`buildBaseUrl`,
  * `validateUuid`, `uuidFromLocation`, `locationHeader`) and the username-is-email

@@ -1,5 +1,5 @@
 /**
- * Public surface of the Seventhings transport layer.
+ * Public surface of the seventhings transport layer.
  *
  * Every resource (Phases 2–7) imports its API access, timestamp normalization,
  * and validators from here.

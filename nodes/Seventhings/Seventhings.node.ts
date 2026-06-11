@@ -23,7 +23,7 @@ import { executeFileOperation, isFileOperationSupported } from './actions/file';
 import { listSearch, loadOptions, resourceMapping } from './methods';
 
 /**
- * Seventhings action node.
+ * seventhings action node.
  *
  * Programmatic-style (has an `execute` method) because the integration needs:
  *   - a per-request base URL derived from the credential's subdomain,
@@ -178,7 +178,7 @@ const fileOperations: INodeProperties = {
 
 export class Seventhings implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Seventhings',
+		displayName: 'seventhings',
 		name: 'seventhings',
 		icon: { light: 'file:seventhings.svg', dark: 'file:seventhings.dark.svg' },
 		group: ['output'],
@@ -186,7 +186,7 @@ export class Seventhings implements INodeType {
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
 		description: 'Manage assets, tasks, rental cases, locations, rooms and files in seventhings',
 		defaults: {
-			name: 'Seventhings',
+			name: 'seventhings',
 		},
 		usableAsTool: true,
 		inputs: [NodeConnectionTypes.Main],

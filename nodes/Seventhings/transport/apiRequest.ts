@@ -1,5 +1,5 @@
 /**
- * Shared HTTP transport for the Seventhings nodes.
+ * Shared HTTP transport for the seventhings nodes.
  *
  * Ported from the Zapier integration's `lib/request.js` (`authedRequest` +
  * `apiError`). Responsibilities:
@@ -27,7 +27,7 @@ import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 import { buildBaseUrl } from './validators';
 
-/** The machine name of the Seventhings credential (defined in Phase 1). */
+/** The machine name of the seventhings credential (defined in Phase 1). */
 export const CREDENTIALS_NAME = 'seventhingsApi';
 
 /** Contexts from which the API helper may be called. */

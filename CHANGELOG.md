@@ -5,6 +5,28 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-06-11
+
+### Changed
+
+- Lowercased the **seventhings** brand name everywhere it is user-visible to
+  match the company's styling: the action and trigger node display names, plus
+  all README, CHANGELOG, and code-comment prose. The credential keeps the
+  title-cased **Seventhings API** display name, which n8n's linter requires for
+  credentials (`cred-class-field-display-name-miscased`). Internal identifiers
+  (class names, TypeScript types, file/folder paths) and the node
+  `name`/credential `name` machine keys are unchanged, so existing workflows
+  and credentials remain compatible.
+
+## [0.2.0] - 2026-06-06
+
+### Changed
+
+- Established a clean release pipeline that follows n8n's community-node
+  requirements: `release` (`n8n-node release`) and `prepublishOnly`
+  (`n8n-node prerelease`) scripts, plus tidied `package.json` packaging
+  metadata. No node, credential, or runtime behaviour changed.
+
 ## [0.1.2] - 2026-06-01
 
 ### Fixed
@@ -64,7 +86,7 @@ nodes (action + polling trigger) and a session-token credential.
   Building (Location) dropdown. Update is PATCH (partial body).
 - **File** resource: Upload (multipart) from upstream binary data or a public
   URL, returning the uploaded file's UUID.
-- **Seventhings Trigger** node (`polling`): New/Updated Asset; New/Updated/
+- **seventhings Trigger** node (`polling`): New/Updated Asset; New/Updated/
   Closed/Reopened/Overdue/Due Soon Task; New/Updated Rental Case; Rental Case
   Returned. High-water-mark dedupe for asset/rental-case events and a
   seen-UUID set for task events (tasks carry no timestamps); Days Ahead input

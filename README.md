@@ -2,7 +2,7 @@
 
 This is an n8n community node. It lets you use [seventhings](https://seventhings.com/) in your n8n workflows.
 
-seventhings is an asset-management and inventory platform for tracking physical assets, tasks, rental cases, locations and rooms across an organization. This package adds two nodes: a **Seventhings** action node for reading and writing those records, and a **Seventhings Trigger** node that starts workflows when records change.
+seventhings is an asset-management and inventory platform for tracking physical assets, tasks, rental cases, locations and rooms across an organization. This package adds two nodes: a **seventhings** action node for reading and writing those records, and a **seventhings Trigger** node that starts workflows when records change.
 
 [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/sustainable-use-license/) workflow automation platform.
 
@@ -24,7 +24,7 @@ Install the package `@seventhingscompany/n8n-nodes-seventhings` from **Settings 
 
 This package provides two nodes.
 
-### Seventhings (action node)
+### seventhings (action node)
 
 Manage assets, tasks, rental cases, locations, rooms and files. The node is organized by **resource**, each with its own set of operations.
 
@@ -46,7 +46,7 @@ Notes:
 - **Room** records belong to a **Building** (a Location), selected from a dropdown.
 - **File → Upload** accepts either an upstream node's **binary** data or a public **URL** to download, and returns the uploaded file's UUID — which you can then attach to an asset.
 
-### Seventhings Trigger (polling)
+### seventhings Trigger (polling)
 
 Starts a workflow when seventhings records change. The trigger **polls** the API (there are no webhooks). Pick one event:
 
@@ -103,6 +103,6 @@ New to n8n? See the [Try it out](https://docs.n8n.io/try-it-out/) documentation 
 
 Initial release. Full parity with the seventhings Zapier integration:
 
-- **Seventhings** action node with Asset, Task, Rental Case, Location, Room and File resources.
-- **Seventhings Trigger** node with 11 polling events.
+- **seventhings** action node with Asset, Task, Rental Case, Location, Room and File resources.
+- **seventhings Trigger** node with 11 polling events.
 - Session-token authentication with automatic refresh.

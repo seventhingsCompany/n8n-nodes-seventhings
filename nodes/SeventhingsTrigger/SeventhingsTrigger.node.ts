@@ -15,7 +15,7 @@ import {
 } from '../Seventhings/transport';
 
 /**
- * Seventhings polling trigger.
+ * seventhings polling trigger.
  *
  * The seventhings API is polling-only (no webhooks), so this node implements
  * `poll`. Each event polls the same list endpoint as the matching Get Many
@@ -123,7 +123,7 @@ function normalizeForResource(resource: Resource, item: IDataObject): IDataObjec
 
 export class SeventhingsTrigger implements INodeType {
 	description: INodeTypeDescription = {
-		displayName: 'Seventhings Trigger',
+		displayName: 'seventhings Trigger',
 		name: 'seventhingsTrigger',
 		icon: { light: 'file:seventhings.svg', dark: 'file:seventhings.dark.svg' },
 		group: ['trigger'],
@@ -131,7 +131,7 @@ export class SeventhingsTrigger implements INodeType {
 		subtitle: '={{$parameter["event"]}}',
 		description: 'Starts a workflow when seventhings records change',
 		defaults: {
-			name: 'Seventhings Trigger',
+			name: 'seventhings Trigger',
 		},
 		// Present to satisfy the node-usable-as-tool lint rule. n8n never exposes a
 		// polling trigger as an AI agent tool, so this has no runtime effect here;
