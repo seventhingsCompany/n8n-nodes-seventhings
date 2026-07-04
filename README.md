@@ -2,7 +2,7 @@
 
 This is an n8n community node. It lets you use [seventhings](https://seventhings.com/) in your n8n workflows.
 
-seventhings is an asset-management and inventory platform for tracking physical assets, tasks, rental cases, locations and rooms across an organization. This package adds two nodes: a **seventhings** action node for reading and writing those records, and a **seventhings Trigger** node that starts workflows when records change.
+seventhings is an asset-management and inventory platform for tracking physical assets, tasks, rental cases, locations, rooms, persons, users, files and Circularity Hub workflows across an organization. This package adds two nodes: a **seventhings** action node for reading and writing those records, and a **seventhings Trigger** node that starts workflows when records change.
 
 [n8n](https://n8n.io/) is a [fair-code licensed](https://docs.n8n.io/sustainable-use-license/) workflow automation platform.
 
@@ -26,7 +26,7 @@ This package provides two nodes.
 
 ### seventhings (action node)
 
-Manage assets, tasks, rental cases, locations, rooms and files. The node is organized by **resource**, each with its own set of operations.
+Manage assets, tasks, rental cases, locations, rooms, files, persons, users, field definitions and Circularity Hub records. The node is organized by **resource**, each with its own set of operations.
 
 | Resource | Operations |
 |----------|------------|
@@ -35,7 +35,12 @@ Manage assets, tasks, rental cases, locations, rooms and files. The node is orga
 | **Rental Case** | Create, Update, Get, Get Many, Delete |
 | **Location** | Create, Update, Get, Get Many, Delete |
 | **Room** | Create, Update, Get, Get Many, Delete |
-| **File** | Upload |
+| **File** | Upload, Get, Get Many, Download Data, Download Thumbnail |
+| **Person** | Create, Update, Get, Get by ID, Get Many, Delete, Create User |
+| **User** | Get, Get by ID, Get Many |
+| **Field Definition** | Create, Update, Get, Get Many |
+| **Circularity Hub Item** | Add Objects, Suggest Category, Suggest Rest Price, Get, Get Many, Update, Delete |
+| **Circularity Hub Order** | Create, Get, Get Many, Update |
 
 Notes:
 
@@ -45,6 +50,10 @@ Notes:
 - **Asset → Attach File / Detach File** target an attachment-type field, picked from a dropdown of the asset's attachment fields.
 - **Room** records belong to a **Building** (a Location), selected from a dropdown.
 - **File → Upload** accepts either an upstream node's **binary** data or a public **URL** to download, and returns the uploaded file's UUID — which you can then attach to an asset.
+- **File → Download Data / Download Thumbnail** write binary output to a configurable binary property.
+- **Person** Create/Update uses your tenant's person field definitions dynamically, matching the SDK's flexible field map.
+- **Field Definition** operations are schema administration operations for Asset, Room and Person templates.
+- **Circularity Hub** operations cover SDK item/order workflows, category and rest-price suggestions, and adding assets to the hub.
 
 ### seventhings Trigger (polling)
 
@@ -88,6 +97,8 @@ No known incompatibilities. If you hit one, please open an issue.
 - Records are selected through searchable dropdowns (resource locators) — start typing to find an asset, task, location, room or rental case, or paste a UUID directly.
 - For list operations, enable **Return All** to fetch every record, or leave it off and set a **Limit**.
 - For **Asset → Attach File / Detach File**, first **Upload** a file (File resource) to get its UUID, then choose the asset's attachment field from the dropdown.
+- For **File → Download Data / Download Thumbnail**, set **Output Binary Field** to the binary property name downstream nodes should read.
+- For **Field Definition** Create/Update and Circularity Hub Update operations, JSON inputs are validated before requests are sent.
 - The action node is usable as a tool by AI agents.
 
 New to n8n? See the [Try it out](https://docs.n8n.io/try-it-out/) documentation to get started.
@@ -98,6 +109,16 @@ New to n8n? See the [Try it out](https://docs.n8n.io/try-it-out/) documentation 
 * [seventhings API documentation](https://helpcenter.seventhings.com/en/articles/58547-how-do-i-use-the-seventhings-api)
 
 ## Version history
+
+### 0.3.0
+
+Expanded SDK parity with Files, Persons, Users, Field Definitions and Circularity Hub:
+
+- File metadata lookup/list and binary data/thumbnail downloads.
+- Person create/update/get/list/delete and create-user workflows.
+- Read-only user lookup/list operations.
+- Field Definition create/update/get/list for Asset, Room and Person templates.
+- Circularity Hub item/order operations, suggestions and add-object workflow.
 
 ### 0.1.0
 

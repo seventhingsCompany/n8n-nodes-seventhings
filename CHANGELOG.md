@@ -5,6 +5,28 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-05
+
+### Added
+
+- Expanded the **File** resource with Get, Get Many, Download Data, and
+  Download Thumbnail operations. Downloads emit n8n binary data under a
+  configurable binary property name.
+- Added **Person** operations: Create, Update, Get, Get by ID, Get Many,
+  Delete, and Create User. Create wraps dynamic person fields as `{ fields }`;
+  Update sends bare fields, matching the current SDKs.
+- Added read-only **User** lookup/list operations: Get, Get by ID, and Get Many.
+- Added **Field Definition** administration for Asset, Room, and Person
+  templates: Create, Update, Get, and Get Many. Create/Update support field
+  type constraints, attributes, relations, default values, and possible values.
+- Added **Circularity Hub Item** operations for suggestions, adding objects,
+  Get, Get Many, Update, and Delete.
+- Added **Circularity Hub Order** operations for Create, Get, Get Many, and
+  Update.
+- Added shared SDK-style list/filter helpers and lightweight Node built-in
+  tests for query encoding, filter-object bodies, field-definition payloads,
+  and Location/Location-Id parsing.
+
 ## [0.2.2] - 2026-06-11
 
 ### Fixed

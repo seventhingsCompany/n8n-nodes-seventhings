@@ -14,12 +14,36 @@ import { rentalCaseFields } from './descriptions/RentalCaseDescription';
 import { locationFields } from './descriptions/LocationDescription';
 import { roomFields } from './descriptions/RoomDescription';
 import { fileFields } from './descriptions/FileDescription';
+import { personFields, personOperations } from './descriptions/PersonDescription';
+import { userFields, userOperations } from './descriptions/UserDescription';
+import {
+	fieldDefinitionFields,
+	fieldDefinitionOperations,
+} from './descriptions/FieldDefinitionDescription';
+import {
+	circularityHubItemFields,
+	circularityHubItemOperations,
+	circularityHubOrderFields,
+	circularityHubOrderOperations,
+} from './descriptions/CircularityHubDescription';
 import { executeAssetOperation, isAssetOperationSupported } from './actions/asset';
 import { executeTaskOperation, isTaskOperationSupported } from './actions/task';
 import { executeRentalCaseOperation, isRentalCaseOperationSupported } from './actions/rentalCase';
 import { executeLocationOperation, isLocationOperationSupported } from './actions/location';
 import { executeRoomOperation, isRoomOperationSupported } from './actions/room';
 import { executeFileOperation, isFileOperationSupported } from './actions/file';
+import { executePersonOperation, isPersonOperationSupported } from './actions/person';
+import { executeUserOperation, isUserOperationSupported } from './actions/user';
+import {
+	executeFieldDefinitionOperation,
+	isFieldDefinitionOperationSupported,
+} from './actions/fieldDefinition';
+import {
+	executeCircularityHubItemOperation,
+	executeCircularityHubOrderOperation,
+	isCircularityHubItemOperationSupported,
+	isCircularityHubOrderOperationSupported,
+} from './actions/circularityHub';
 import { listSearch, loadOptions, resourceMapping } from './methods';
 
 /**
@@ -44,11 +68,16 @@ const resourceProperty: INodeProperties = {
 	noDataExpression: true,
 	options: [
 		{ name: 'Asset', value: 'asset' },
+		{ name: 'Circularity Hub Item', value: 'circularityHubItem' },
+		{ name: 'Circularity Hub Order', value: 'circularityHubOrder' },
+		{ name: 'Field Definition', value: 'fieldDefinition' },
 		{ name: 'File', value: 'file' },
 		{ name: 'Location', value: 'location' },
+		{ name: 'Person', value: 'person' },
 		{ name: 'Rental Case', value: 'rentalCase' },
 		{ name: 'Room', value: 'room' },
 		{ name: 'Task', value: 'task' },
+		{ name: 'User', value: 'user' },
 	],
 	default: 'asset',
 };
@@ -171,6 +200,20 @@ const fileOperations: INodeProperties = {
 	noDataExpression: true,
 	displayOptions: { show: { resource: ['file'] } },
 	options: [
+		{
+			name: 'Download Data',
+			value: 'downloadData',
+			description: 'Download the file data as binary output',
+			action: 'Download file data',
+		},
+		{
+			name: 'Download Thumbnail',
+			value: 'downloadThumbnail',
+			description: 'Download the file thumbnail as binary output',
+			action: 'Download file thumbnail',
+		},
+		{ name: 'Get', value: 'get', description: 'Get file metadata', action: 'Get a file' },
+		{ name: 'Get Many', value: 'getAll', description: 'Get many files', action: 'Get many files' },
 		{ name: 'Upload', value: 'upload', description: 'Upload a file', action: 'Upload a file' },
 	],
 	default: 'upload',
@@ -200,17 +243,27 @@ export class Seventhings implements INodeType {
 		properties: [
 			resourceProperty,
 			assetOperations,
+			circularityHubItemOperations,
+			circularityHubOrderOperations,
+			fieldDefinitionOperations,
 			taskOperations,
 			rentalCaseOperations,
 			locationOperations,
 			roomOperations,
 			fileOperations,
+			personOperations,
+			userOperations,
 			...assetFields,
+			...circularityHubItemFields,
+			...circularityHubOrderFields,
+			...fieldDefinitionFields,
 			...taskFields,
 			...rentalCaseFields,
 			...locationFields,
 			...roomFields,
 			...fileFields,
+			...personFields,
+			...userFields,
 		],
 	};
 
@@ -261,6 +314,42 @@ export class Seventhings implements INodeType {
 
 				if (resource === 'file' && isFileOperationSupported(operation)) {
 					const results = await executeFileOperation.call(this, operation, i);
+					returnData.push(...results);
+					continue;
+				}
+
+				if (resource === 'person' && isPersonOperationSupported(operation)) {
+					const results = await executePersonOperation.call(this, operation, i);
+					returnData.push(...results);
+					continue;
+				}
+
+				if (resource === 'user' && isUserOperationSupported(operation)) {
+					const results = await executeUserOperation.call(this, operation, i);
+					returnData.push(...results);
+					continue;
+				}
+
+				if (resource === 'fieldDefinition' && isFieldDefinitionOperationSupported(operation)) {
+					const results = await executeFieldDefinitionOperation.call(this, operation, i);
+					returnData.push(...results);
+					continue;
+				}
+
+				if (
+					resource === 'circularityHubItem' &&
+					isCircularityHubItemOperationSupported(operation)
+				) {
+					const results = await executeCircularityHubItemOperation.call(this, operation, i);
+					returnData.push(...results);
+					continue;
+				}
+
+				if (
+					resource === 'circularityHubOrder' &&
+					isCircularityHubOrderOperationSupported(operation)
+				) {
+					const results = await executeCircularityHubOrderOperation.call(this, operation, i);
 					returnData.push(...results);
 					continue;
 				}
