@@ -1,7 +1,7 @@
 {
   "name": "@seventhingscompany/n8n-nodes-seventhings",
-  "version": "0.2.2",
-  "description": "n8n community node for seventhings: manage assets, tasks, rental cases, locations, rooms and files.",
+  "version": "0.3.0",
+  "description": "n8n community node for seventhings: manage assets, tasks, rental cases, locations, rooms, files, persons, users, field definitions and Circularity Hub.",
   "license": "MIT",
   "homepage": "https://seventhings.com",
   "keywords": [
@@ -28,6 +28,7 @@
     "dev": "n8n-node dev",
     "lint": "n8n-node lint",
     "lint:fix": "n8n-node lint --fix",
+    "test": "npm run build && node --test tests/*.test.js",
     "release": "n8n-node release",
     "prepublishOnly": "n8n-node prerelease"
   },

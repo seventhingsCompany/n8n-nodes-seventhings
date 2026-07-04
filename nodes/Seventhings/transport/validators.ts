@@ -72,3 +72,17 @@ export function locationHeader(headers: unknown): string | undefined {
 	const value = record.location ?? record.Location;
 	return typeof value === 'string' ? value : undefined;
 }
+
+/** Parse the integer `Location-Id` header returned by Circularity Hub creates. */
+export function idFromLocationIdHeader(headers: unknown): number | null {
+	if (!headers || typeof headers !== 'object') {
+		return null;
+	}
+	const record = headers as Record<string, unknown>;
+	const value = record['location-id'] ?? record['Location-Id'] ?? record['Location-ID'];
+	if (value === undefined || value === null || value === '') {
+		return null;
+	}
+	const id = Number(value);
+	return Number.isInteger(id) ? id : null;
+}

@@ -9,6 +9,11 @@ import { rentalCaseListSearch } from './rentalCaseMethods';
 import { taskListSearch } from './taskMethods';
 import { locationListSearch, locationLoadOptions } from './locationMethods';
 import { roomListSearch, roomResourceMapping } from './roomMethods';
+import { fileListSearch } from './fileMethods';
+import { personListSearch, personResourceMapping } from './personMethods';
+import { userListSearch } from './userMethods';
+import { fieldDefinitionListSearch } from './fieldDefinitionMethods';
+import { circularityHubListSearch } from './circularityHubMethods';
 
 export const loadOptions = {
 	...assetLoadOptions,
@@ -21,9 +26,15 @@ export const listSearch = {
 	...rentalCaseListSearch,
 	...locationListSearch,
 	...roomListSearch,
+	...fileListSearch,
+	...personListSearch,
+	...userListSearch,
+	...fieldDefinitionListSearch,
+	...circularityHubListSearch,
 };
 
 export const resourceMapping = {
 	...assetResourceMapping,
 	...roomResourceMapping,
+	...personResourceMapping,
 };
