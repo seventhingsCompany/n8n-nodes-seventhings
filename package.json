@@ -1,6 +1,6 @@
 {
   "name": "@seventhingscompany/n8n-nodes-seventhings",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "n8n community node for seventhings: manage assets, tasks, rental cases, locations, rooms, files, persons, users, field definitions and Circularity Hub.",
   "license": "MIT",
   "homepage": "https://seventhings.com",

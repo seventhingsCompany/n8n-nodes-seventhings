@@ -99,7 +99,7 @@ function taskAdditionalFields(operation: 'create' | 'update'): INodeProperties {
 				typeOptions: { multipleValues: true },
 				default: [],
 				description:
-					'User UUIDs to assign the task to. Paste from a task trigger or your tenant’s user list.',
+					'User UUIDs to assign the task to. The API accepts a single assignee; if you provide more than one, only the first is used.',
 			},
 			{
 				displayName: 'Deadline',
@@ -174,7 +174,7 @@ export const taskFields: INodeProperties[] = [
 		default: [],
 		required: true,
 		description:
-			'User UUIDs to assign the task to. Paste from a task trigger or your tenant’s user list. At least one is required.',
+			'User UUIDs to assign the task to. Paste from a task trigger or your tenant’s user list. The API accepts a single assignee; if you provide more than one, only the first is used.',
 		displayOptions: { show: { resource: ['task'], operation: ['create'] } },
 	},
 	{
