@@ -26,6 +26,7 @@ import {
 	locationHeader,
 	normalizeTask,
 	seventhingsApiRequest,
+	toApiDate,
 	uuidFromLocation,
 	validateUuid,
 } from '../../transport';
@@ -71,6 +72,20 @@ function buildReminders(unit: unknown, valueRaw: unknown): Array<{ unit: string;
 	return Number.isNaN(value) ? [] : [{ unit, value }];
 }
 
+/**
+ * Normalize the assignees input to the shape the API accepts. The create/update
+ * schema is `maxItems: 1`, so the API rejects a body with more than one
+ * assignee; we drop the empties and keep only the first.
+ */
+function normalizeAssignees(input: unknown): string[] {
+	const list = Array.isArray(input)
+		? (input as unknown[]).filter((a): a is string => typeof a === 'string' && a !== '')
+		: typeof input === 'string' && input !== ''
+			? [input]
+			: [];
+	return list.slice(0, 1);
+}
+
 /** Build the asset reference array from an asset UUID, or `[]` when unset. */
 function buildReferences(assetUuid: unknown): Array<{ type: string; uuid: string }> {
 	return typeof assetUuid === 'string' && assetUuid !== ''
@@ -85,19 +100,24 @@ function buildReferences(assetUuid: unknown): Array<{ type: string; uuid: string
  */
 function buildCreateBody(this: IExecuteFunctions, i: number): TaskBody {
 	const additional = this.getNodeParameter('additionalFields', i, {}) as IDataObject;
-	const assignees = ((this.getNodeParameter('assignees', i, []) as string[]) ?? []).filter(
-		(a) => a,
-	);
+	const assignees = normalizeAssignees(this.getNodeParameter('assignees', i, []));
 	const comment = additional.comment as string | undefined;
+
+	// The deadline is a `dateTime` input (ISO `...T...Z`), but the API's create
+	// schema is `format: date`, so reduce it to a bare `YYYY-MM-DD`.
+	const deadline = toApiDate(this.getNodeParameter('deadline', i, '') as string);
+	// `reminders` is `minItems: 1`; if the user cleared it, fall back to a
+	// zero-day reminder so the body still satisfies the schema.
+	const reminders = buildReminders(
+		this.getNodeParameter('reminderUnit', i, 'days'),
+		this.getNodeParameter('reminderValue', i, 1),
+	);
 
 	const body: TaskBody = {
 		title: this.getNodeParameter('title', i) as string,
 		comment: comment ? comment : null,
-		deadline: this.getNodeParameter('deadline', i) as string,
-		reminders: buildReminders(
-			this.getNodeParameter('reminderUnit', i, 'days'),
-			this.getNodeParameter('reminderValue', i, 1),
-		),
+		deadline,
+		reminders: reminders.length > 0 ? reminders : [{ unit: 'days', value: 0 }],
 		recurring_schedule: null,
 		assignees,
 		references: buildReferences(this.getNodeParameter('referenceAssetUuid', i, '')),
@@ -109,6 +129,32 @@ function buildCreateBody(this: IExecuteFunctions, i: number): TaskBody {
 	}
 
 	return body;
+}
+
+/**
+ * Validate the API-required create inputs up front so the node surfaces a clear
+ * error instead of the opaque "Body does not match schema" 400. The UI marks
+ * these fields required, but an expression can still resolve to an empty value.
+ */
+function validateCreateBody(this: IExecuteFunctions, i: number, body: TaskBody): void {
+	const fail = (message: string): never => {
+		throw new NodeOperationError(this.getNode(), `Create task: ${message}`, { itemIndex: i });
+	};
+
+	if (!body.title || body.title.trim() === '') {
+		fail('a title is required.');
+	}
+	if (!body.deadline) {
+		fail('a deadline is required.');
+	}
+	if (body.assignees.length === 0) {
+		fail('an assignee UUID is required.');
+	}
+	// The API rejects tasks with no references ("References cannot be empty"),
+	// even though the OpenAPI schema does not mark references non-empty.
+	if (body.references.length === 0) {
+		fail('a referenced asset UUID is required.');
+	}
 }
 
 /**
@@ -131,10 +177,13 @@ function sanitizeExistingTask(existing: IDataObject): TaskBody {
 			}))
 		: [];
 
+	const existingDeadline = existing.deadline as string | null;
 	return {
 		title: String(existing.title ?? ''),
 		comment: (existing.comment as string | null) ?? null,
-		deadline: (existing.deadline as string | null) ?? null,
+		// The API's date fields are `format: date`; normalize any datetime the
+		// GET returns so the fetch-merge-PUT round-trip stays schema-valid.
+		deadline: existingDeadline ? toApiDate(existingDeadline) : null,
 		reminders,
 		recurring_schedule: (existing.recurring_schedule as IDataObject | null) ?? null,
 		assignees: Array.isArray(existing.assignees) ? (existing.assignees as string[]) : [],
@@ -155,10 +204,11 @@ function applyTaskUpdates(base: TaskBody, additional: IDataObject): TaskBody {
 		body.comment = (additional.comment as string) || null;
 	}
 	if (additional.deadline !== undefined && additional.deadline !== '') {
-		body.deadline = additional.deadline as string;
+		// The API's date fields are `format: date`; normalize the dateTime input.
+		body.deadline = toApiDate(additional.deadline as string);
 	}
 	if (additional.assignees !== undefined) {
-		const list = ((additional.assignees as string[]) ?? []).filter((a) => a);
+		const list = normalizeAssignees(additional.assignees);
 		if (list.length > 0) {
 			body.assignees = list;
 		}
@@ -245,6 +295,7 @@ type TaskHandler = (
 const handlers: Record<string, TaskHandler> = {
 	async create(this: IExecuteFunctions, i: number) {
 		const body = buildCreateBody.call(this, i);
+		validateCreateBody.call(this, i, body);
 		const created = await createTask.call(this, i, body);
 		return [{ json: created, pairedItem: { item: i } }];
 	},

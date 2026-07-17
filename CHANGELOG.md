@@ -5,6 +5,24 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-07-17
+
+### Fixed
+
+- **Task › Create** failed against the live API with an opaque HTTP 400 ("Body
+  does not match schema"). The create body now normalizes the **deadline** to a
+  bare `YYYY-MM-DD` (the API's date fields are `format: date` and reject the
+  `dateTime` input's ISO `...T...Z` value) and caps **assignees** to the single
+  value the schema accepts (`maxItems: 1`). When no reminder is set, a zero-day
+  reminder is sent so the `minItems: 1` `reminders` array is never empty.
+- Missing title / deadline / assignee / referenced-asset values now surface a
+  clear node error up front instead of the opaque schema-mismatch 400 — the API
+  rejects tasks with no reference ("References cannot be empty"), a server rule
+  not encoded in the OpenAPI schema.
+- **Task › Update** applies the same deadline normalization and assignee cap,
+  and normalizes the existing task's deadline during the fetch-merge-PUT
+  round-trip so an update can no longer reintroduce a datetime-formatted date.
+
 ## [0.3.0] - 2026-07-05
 
 ### Added
