@@ -65,15 +65,14 @@ function roomLocator(operations: string[]): INodeProperties {
 /** The Building (location) dropdown — value is the location's integer id. */
 function buildingField(operations: string[], required: boolean): INodeProperties {
 	return {
-		// eslint-disable-next-line n8n-nodes-base/node-param-display-name-wrong-for-dynamic-options
-		displayName: 'Building',
+		displayName: 'Building Name or ID',
 		name: 'buildingId',
 		type: 'options',
 		typeOptions: { loadOptionsMethod: 'getLocationOptions' },
 		default: '',
 		required,
-		// eslint-disable-next-line n8n-nodes-base/node-param-description-wrong-for-dynamic-options
-		description: 'The location (building) that owns this room',
+		description:
+			'The location (building) that owns this room. Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 		displayOptions: { show: { resource: ['room'], operation: operations } },
 	};
 }
@@ -144,14 +143,13 @@ export const roomFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['room'], operation: ['getAll'] } },
 		options: [
 			{
-				// eslint-disable-next-line n8n-nodes-base/node-param-display-name-wrong-for-dynamic-options
-				displayName: 'Building',
+				displayName: 'Building Name or ID',
 				name: 'buildingId',
 				type: 'options',
 				typeOptions: { loadOptionsMethod: 'getLocationOptions' },
 				default: '',
-				// eslint-disable-next-line n8n-nodes-base/node-param-description-wrong-for-dynamic-options
-				description: 'Only rooms belonging to this location (building)',
+				description:
+					'Only rooms belonging to this location (building). Choose from the list, or specify an ID using an <a href="https://docs.n8n.io/code/expressions/">expression</a>.',
 			},
 			{
 				displayName: 'Name',
