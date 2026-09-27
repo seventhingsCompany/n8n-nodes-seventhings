@@ -112,7 +112,7 @@ export const roomFields: INodeProperties[] = [
 	roomFieldsMapper(['update']),
 
 	// ---- Get / Delete -------------------------------------------------------
-	roomLocator(['get']),
+	roomLocator(['get', 'getHistory']),
 	roomLocator(['delete']),
 
 	// ---- Get Many -----------------------------------------------------------

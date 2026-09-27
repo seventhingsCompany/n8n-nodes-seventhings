@@ -212,7 +212,7 @@ export const taskFields: INodeProperties[] = [
 	taskAdditionalFields('update'),
 
 	// ---- Get / Close / Reopen / Delete --------------------------------------
-	taskLocator(['get']),
+	taskLocator(['get', 'getHistory']),
 	taskLocator(['close']),
 	taskLocator(['reopen']),
 	taskLocator(['delete']),

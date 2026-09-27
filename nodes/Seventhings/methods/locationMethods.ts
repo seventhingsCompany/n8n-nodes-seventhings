@@ -64,6 +64,7 @@ export const locationLoadOptions = {
 		const items = await fetchLocations.call(this);
 
 		return items
+			.map((item) => normalizeLocation(item))
 			.map((item) => {
 				const id = item.id;
 				const uuid = (item.uuid as string | undefined) ?? '';
@@ -71,7 +72,7 @@ export const locationLoadOptions = {
 					typeof item.name === 'string' && item.name.trim() !== ''
 						? (item.name as string)
 						: String(id ?? uuid);
-				return { name, value: (id ?? '') as string | number };
+				return { name, value: typeof id === 'number' ? id : '' };
 			})
 			.filter((entry) => entry.value !== '');
 	},

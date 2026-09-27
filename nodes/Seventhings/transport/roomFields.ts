@@ -16,6 +16,7 @@ import type { IDataObject, ResourceMapperField } from 'n8n-workflow';
 import { seventhingsApiRequest, type SeventhingsRequestContext } from './apiRequest';
 import { mapFieldType } from './assetFields';
 import { normalizeTimestamps } from './timestamps';
+import { withRecordFields } from './recordFields';
 
 /**
  * Normalize a room record: ensure `uuid`, `room_uuid` and `id` are present and
@@ -25,6 +26,7 @@ import { normalizeTimestamps } from './timestamps';
  * that first and mirror it onto `uuid` for a consistent downstream shape.
  */
 export function normalizeRoom(item: IDataObject, fallbackUuid?: string): IDataObject {
+	item = withRecordFields(item);
 	const uuid =
 		(item.room_uuid as string | undefined) ?? (item.uuid as string | undefined) ?? fallbackUuid;
 	const normalized = normalizeTimestamps(item);

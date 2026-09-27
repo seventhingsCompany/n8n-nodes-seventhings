@@ -160,7 +160,9 @@ const handlers: Record<string, FileHandler> = {
 		const response = (await seventhingsApiRequest.call(this, {
 			path: FILES_PATH,
 		})) as IDataObject;
-		const items = Array.isArray(response.items) ? (response.items as IDataObject[]) : [];
+		const items = Array.isArray(response)
+			? (response as IDataObject[])
+			: Array.isArray(response.items) ? (response.items as IDataObject[]) : [];
 		return items
 			.slice(0, limit)
 			.map((item) => ({ json: normalizeFile(item), pairedItem: { item: i } }));

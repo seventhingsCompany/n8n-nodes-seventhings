@@ -70,12 +70,17 @@ export function fieldDefinitionPath(template: AssetTrackingTemplate, uuid?: stri
 export async function fetchFieldDefinitions(
 	this: SeventhingsRequestContext,
 	template: AssetTrackingTemplate,
+	throwOnError = false,
 ): Promise<FieldDefinition[]> {
-	try {
+	const fetch = async (): Promise<FieldDefinition[]> => {
 		const response = (await seventhingsApiRequest.call(this, {
 			path: fieldDefinitionsPath(template),
 		})) as FieldDefinition[] | IDataObject;
 		return Array.isArray(response) ? response : [];
+	};
+	if (throwOnError) return fetch();
+	try {
+		return await fetch();
 	} catch {
 		return [];
 	}

@@ -30,6 +30,12 @@ export const personOperations: INodeProperties = {
 			description: 'Get a person by numeric ID',
 			action: 'Get a person by ID',
 		},
+		{
+			name: 'Get History',
+			value: 'getHistory',
+			description: 'Get recorded changes of a person, newest first',
+			action: 'Get person history',
+		},
 		{ name: 'Get Many', value: 'getAll', description: 'Get many persons', action: 'Get many persons' },
 		{ name: 'Update', value: 'update', description: 'Update a person', action: 'Update a person' },
 	],
@@ -153,7 +159,7 @@ const createUserFilter: INodeProperties = {
 
 export const personFields: INodeProperties[] = [
 	personFieldsMapper(['create', 'update']),
-	personLocator(['update', 'get', 'delete']),
+	personLocator(['update', 'get', 'getHistory', 'delete']),
 	{
 		displayName: 'Person ID',
 		name: 'personNumericId',

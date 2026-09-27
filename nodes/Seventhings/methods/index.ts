@@ -14,6 +14,7 @@ import { personListSearch, personResourceMapping } from './personMethods';
 import { userListSearch } from './userMethods';
 import { fieldDefinitionListSearch } from './fieldDefinitionMethods';
 import { circularityHubListSearch } from './circularityHubMethods';
+import { reportListSearch } from './reportMethods';
 
 export const loadOptions = {
 	...assetLoadOptions,
@@ -31,6 +32,7 @@ export const listSearch = {
 	...userListSearch,
 	...fieldDefinitionListSearch,
 	...circularityHubListSearch,
+	...reportListSearch,
 };
 
 export const resourceMapping = {

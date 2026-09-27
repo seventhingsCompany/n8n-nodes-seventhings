@@ -5,6 +5,26 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Asset › Get by Barcode**, including archived assets, with raw scancodes safely URL-encoded.
+- **Get History** for Asset, Room, Location, Person, Task and Rental Case. Automatically
+  paginates with Return All / Limit controls and emits newest-first event items without
+  changing dynamic payloads, merge events or JSON-encoded snapshots.
+- **Report › Get Many Templates** and **Create**, with searchable template selection,
+  ordered asset UUIDs, and PDF binary output under a configurable field and file name.
+- Contract coverage for the nine endpoints introduced by the Go/PHP SDK v1.4.0 releases
+  and API spec `v0.19571_89862c247_20260915`.
+
+### Fixed
+
+- **Person › Get Many** now sends `sort[field]=ASC|DESC`, replacing the unsupported
+  `sort_by` / `order` parameters while retaining existing workflow inputs.
+- Person responses with an empty legacy `person_uuid` fall back to `uuid`, while
+  continuing to prefer a non-empty legacy identifier.
+
 ## [0.3.1] - 2026-07-17
 
 ### Fixed

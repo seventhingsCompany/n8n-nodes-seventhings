@@ -312,7 +312,7 @@ export const rentalCaseFields: INodeProperties[] = [
 	rentalCaseUpdateFields,
 
 	// ---- Get / Delete -------------------------------------------------------
-	rentalCaseLocator(['get']),
+	rentalCaseLocator(['get', 'getHistory']),
 	rentalCaseLocator(['delete']),
 
 	// ---- Get Many -----------------------------------------------------------

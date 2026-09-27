@@ -34,6 +34,7 @@ import {
 	locationHeader,
 	normalizeRoom,
 	seventhingsApiRequest,
+	seventhingsApiRequestAllItems,
 	uuidFromLocation,
 	validateUuid,
 } from '../../transport';
@@ -188,17 +189,10 @@ const handlers: Record<string, RoomHandler> = {
 		const filters = this.getNodeParameter('filters', i, {}) as IDataObject;
 		const limit = returnAll ? undefined : (this.getNodeParameter('limit', i, 50) as number);
 
-		// The rooms endpoint returns an `{ items }` wrapper. Request per_page when
-		// a limit applies; read the items array and slice as a safeguard.
-		const response = (await seventhingsApiRequest.call(this, {
+		const list = await seventhingsApiRequestAllItems.call(this, {
 			path: ROOMS_PATH,
-			qs: {
-				...(limit !== undefined ? { per_page: limit } : {}),
-				...buildFiltersQs(filters),
-			},
-		})) as IDataObject;
-
-		const list = Array.isArray(response.items) ? (response.items as IDataObject[]) : [];
+			qs: buildFiltersQs(filters),
+		}, limit);
 		const normalized = list.map((room) => normalizeRoom(room));
 		const limited = limit === undefined ? normalized : normalized.slice(0, limit);
 

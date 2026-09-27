@@ -34,6 +34,18 @@ export const assetOperations: INodeProperties = {
 		},
 		{ name: 'Get', value: 'get', description: 'Get an asset by UUID', action: 'Get an asset' },
 		{
+			name: 'Get by Barcode',
+			value: 'getByBarcode',
+			description: 'Get an asset by scancode, including archived assets',
+			action: 'Get an asset by barcode',
+		},
+		{
+			name: 'Get History',
+			value: 'getHistory',
+			description: 'Get recorded changes of an asset, newest first',
+			action: 'Get asset history',
+		},
+		{
 			name: 'Get Many',
 			value: 'getAll',
 			description: 'Get many assets',
@@ -172,7 +184,16 @@ export const assetFields: INodeProperties[] = [
 	assetLocator('searchAssets', ['update']),
 
 	// ---- Get ----------------------------------------------------------------
-	assetLocator('searchAssets', ['get']),
+	assetLocator('searchAssets', ['get', 'getHistory']),
+	{
+		displayName: 'Barcode',
+		name: 'barcode',
+		type: 'string',
+		default: '',
+		required: true,
+		description: 'The exact scancode of the asset. Enter the raw value; URL encoding is applied automatically.',
+		displayOptions: { show: { resource: ['asset'], operation: ['getByBarcode'] } },
+	},
 
 	// ---- Archive / Delete / Move (active assets) ----------------------------
 	assetLocator('searchAssets', ['archive', 'delete', 'moveToLocation', 'moveToRoom']),

@@ -22,18 +22,9 @@ import {
  * operation and emits only records new/changed since the last poll, tracked in
  * `getWorkflowStaticData('node')`.
  *
- * Two dedupe strategies, picked per resource because the live API differs from
- * the Zapier source:
- *
- *  - **Asset / Rental Case** carry `created_at` / `updated_at` (assets in the
- *    space-separated form the normalizers ISO-ize). These use a **high-water
- *    timestamp** mark per event.
- *  - **Task** records have **no timestamps at all** on this API (null in both
- *    the list and the detail GET). So task events use a **seen-UUID set** per
- *    event stored in static data: a task is emitted the first time it appears
- *    for that event (e.g. enters `status=closed`). Overdue / due-soon also
- *    apply a `deadline` window filter. This detects status *entry*, not every
- *    individual edit — the only signal the API exposes.
+ * Assets and new rental cases use timestamp watermarks. Tasks and rental-case
+ * updates have no reliable updated_at: compare stable record signatures for
+ * edits, UUIDs for status entry, and UUID/deadline pairs for deadline events.
  */
 
 const OBJECTS_PATH = '/customer-api/v1/objects';
@@ -47,6 +38,8 @@ interface EventConfig {
 	path: string;
 	/** Timestamp field used for the high-water mark (asset / rental case only). */
 	watermarkField?: 'created_at' | 'updated_at';
+	/** Compare content for update events that have no reliable timestamp. */
+	compareContent?: boolean;
 	/** `status` query param sent to the API, if any. */
 	statusQuery?: string;
 	/** Client-side re-filter applied after fetch (defensive — params can be ignored). */
@@ -60,7 +53,7 @@ const EVENTS: Record<string, EventConfig> = {
 	updatedAsset: { resource: 'asset', path: OBJECTS_PATH, watermarkField: 'updated_at' },
 	// Tasks carry no timestamps → seen-UUID set, not a watermark.
 	newTask: { resource: 'task', path: TASKS_PATH },
-	updatedTask: { resource: 'task', path: TASKS_PATH },
+	updatedTask: { resource: 'task', path: TASKS_PATH, compareContent: true },
 	taskClosed: {
 		resource: 'task',
 		path: TASKS_PATH,
@@ -89,12 +82,11 @@ const EVENTS: Record<string, EventConfig> = {
 	updatedRentalCase: {
 		resource: 'rentalCase',
 		path: RENTAL_CASES_PATH,
-		watermarkField: 'updated_at',
+		compareContent: true,
 	},
 	rentalCaseReturned: {
 		resource: 'rentalCase',
 		path: RENTAL_CASES_PATH,
-		watermarkField: 'updated_at',
 		predicate: (r) => r.status === 'completed',
 	},
 };
@@ -212,15 +204,21 @@ export class SeventhingsTrigger implements INodeType {
 		if (config.statusQuery) {
 			qs.status = config.statusQuery;
 		}
+		if (config.resource === 'rentalCase') {
+			qs['sort[created_at]'] = 'DESC';
+			qs.per_page = SAMPLE_SIZE;
+		}
 
 		// Deadline-window events need a date range. `new Date()` is fine here (node
 		// runtime, not a workflow script).
 		const today = new Date();
+		let cutoff = today;
 		if (config.deadlineWindow === 'overdue') {
 			qs.deadline_to = toApiDay(today);
 		} else if (config.deadlineWindow === 'dueSoon') {
 			const daysAhead = (this.getNodeParameter('daysAhead', 0) as number) || 3;
 			const future = new Date(today.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+			cutoff = future;
 			qs.deadline_from = toApiDay(today);
 			qs.deadline_to = toApiDay(future);
 		}
@@ -239,17 +237,15 @@ export class SeventhingsTrigger implements INodeType {
 			records = records.filter(config.predicate);
 		}
 		if (config.deadlineWindow) {
-			records = filterDeadlineWindow(records, config.deadlineWindow, today);
+			records = filterDeadlineWindow(records, config.deadlineWindow, today, cutoff);
 		}
 
 		const isManual = this.getMode() === 'manual';
 
-		// Task events dedupe on a seen-UUID set (no timestamps available);
-		// asset/rental-case events dedupe on a high-water timestamp.
 		const newItems =
-			config.resource === 'task'
-				? filterTaskBySeenSet.call(this, event, records, isManual)
-				: filterByWatermark.call(this, event, config.watermarkField!, records, isManual);
+			config.watermarkField
+				? filterByWatermark.call(this, event, config.watermarkField, records, isManual)
+				: filterBySeenSet.call(this, event, records, isManual, config);
 
 		if (isManual) {
 			const sample = newItems.slice(0, SAMPLE_SIZE);
@@ -266,33 +262,47 @@ export class SeventhingsTrigger implements INodeType {
  * (empty set) it seeds the set and emits nothing, so activation doesn't replay
  * history. Manual mode ignores the set entirely.
  */
-function filterTaskBySeenSet(
+function filterBySeenSet(
 	this: IPollFunctions,
 	event: string,
 	records: IDataObject[],
 	isManual: boolean,
+	config: EventConfig,
 ): IDataObject[] {
 	if (isManual) {
 		return records;
 	}
 
 	const staticData = this.getWorkflowStaticData('node');
-	const key = `seen_${event}`;
+	const key = `${config.compareContent || config.deadlineWindow ? 'signatures' : 'seen'}_${event}`;
 	const seenList = Array.isArray(staticData[key]) ? (staticData[key] as string[]) : undefined;
 	const seen = new Set(seenList);
 	const firstRun = seenList === undefined;
 
-	const currentUuids = records
-		.map((r) => r.uuid as string | undefined)
-		.filter((u): u is string => Boolean(u));
-
-	const fresh = firstRun ? [] : records.filter((r) => !seen.has(r.uuid as string));
+	const identified = records.filter((record) => Boolean(record.uuid));
+	const signature = (record: IDataObject): string => {
+		if (config.compareContent) return stableSignature(record);
+		if (config.deadlineWindow) return `${record.uuid}-${String(record.deadline).slice(0, 10)}`;
+		return String(record.uuid);
+	};
+	const currentUuids = identified.map(signature);
+	const fresh = firstRun ? [] : identified.filter((record) => !seen.has(signature(record)));
 
 	// Persist the current UUIDs (bounded), so a task can re-fire if it leaves and
 	// later re-enters this event's status.
 	staticData[key] = currentUuids.slice(-MAX_SEEN);
 
 	return fresh;
+}
+
+/** Canonical JSON avoids false updates caused only by API object-key ordering. */
+function stableSignature(value: unknown): string {
+	if (Array.isArray(value)) return `[${value.map(stableSignature).join(',')}]`;
+	if (value && typeof value === 'object') {
+		const object = value as Record<string, unknown>;
+		return `{${Object.keys(object).sort().map((key) => `${JSON.stringify(key)}:${stableSignature(object[key])}`).join(',')}}`;
+	}
+	return JSON.stringify(value) ?? 'null';
 }
 
 /**
@@ -316,7 +326,12 @@ function filterByWatermark(
 
 	const staticData = this.getWorkflowStaticData('node');
 	const markKey = `lastSeen_${event}`;
+	const initializedKey = `initialized_${event}`;
 	const lastSeen = parseTime(staticData[markKey]);
+	const idsKey = `watermarkIds_${event}`;
+	const previousIds = Array.isArray(staticData[idsKey]) ? (staticData[idsKey] as string[]) : undefined;
+	const seenIds = new Set(previousIds);
+	const identity = (record: IDataObject): string => String(record.asset_uuid ?? record.uuid ?? record.id ?? '');
 
 	let newestMs = lastSeen;
 	for (const record of records) {
@@ -326,21 +341,23 @@ function filterByWatermark(
 		}
 	}
 
-	// First run: seed the mark, emit nothing (don't replay history on activation).
-	if (!staticData[markKey]) {
-		if (Number.isFinite(newestMs)) {
-			staticData[markKey] = new Date(newestMs).toISOString();
-		}
-		return [];
-	}
-
-	const fresh = records.filter((record) => parseTime(record[field]) > lastSeen);
-
-	if (Number.isFinite(newestMs) && newestMs > lastSeen) {
+	const firstRun = !staticData[initializedKey] && !staticData[markKey];
+	const fresh = records.filter((record) => {
+		const ms = parseTime(record[field]);
+		return Number.isFinite(ms) && (ms > lastSeen ||
+			(ms === lastSeen && previousIds !== undefined && !seenIds.has(identity(record))));
+	});
+	staticData[initializedKey] = true;
+	if (Number.isFinite(newestMs)) {
 		staticData[markKey] = new Date(newestMs).toISOString();
+		const ids = newestMs === lastSeen ? seenIds : new Set<string>();
+		for (const record of records) {
+			if (parseTime(record[field]) === newestMs) ids.add(identity(record));
+		}
+		staticData[idsKey] = [...ids];
 	}
 
-	return fresh;
+	return firstRun ? [] : fresh;
 }
 
 /**
@@ -352,20 +369,21 @@ function filterDeadlineWindow(
 	records: IDataObject[],
 	window: 'overdue' | 'dueSoon',
 	today: Date,
+	cutoff: Date,
 ): IDataObject[] {
 	const todayMs = Date.parse(toApiDay(today));
 	return records.filter((record) => {
 		const deadline = record.deadline;
-		if (!deadline) {
+		if (!deadline || record.status !== 'open') {
 			return false;
 		}
-		const deadlineMs = parseTime(deadline);
+		const deadlineMs = parseTime(String(deadline).slice(0, 10));
 		if (!Number.isFinite(deadlineMs)) {
 			return false;
 		}
 		if (window === 'overdue') {
 			return deadlineMs <= todayMs;
 		}
-		return deadlineMs >= todayMs;
+		return deadlineMs >= todayMs && deadlineMs <= Date.parse(toApiDay(cutoff));
 	});
 }
