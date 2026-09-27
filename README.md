@@ -153,6 +153,26 @@ npm run build
 node --env-file=.env tests/live-smoke.js
 ```
 
+### Publishing releases
+
+Run `npm run release` locally from `main` for the interactive n8n release flow,
+or create a version tag/release in GitHub (for example, `0.4.0` or `v0.4.0`).
+The Publish workflow uses that tag as the npm version and updates `package.json`
+and `package-lock.json` in the runner before building and publishing with provenance.
+Creating a tag in GitHub does not update version metadata or the changelog on `main`;
+keep those files aligned when preparing a release.
+
+To recover an unpublished tag after merging a workflow fix, use **Actions → Publish →
+Run workflow**, select `main`, and enter the existing tag. For example:
+
+```sh
+gh workflow run publish.yml --ref main -f tag=0.4.0
+```
+
+This uses the current workflow to check out and publish the original tagged source.
+Re-running an old failed run uses its old workflow definition instead. npm versions
+are immutable, so only retry versions that have not already been published.
+
 ## Resources
 
 * [n8n community nodes documentation](https://docs.n8n.io/integrations/#community-nodes)
@@ -162,7 +182,7 @@ node --env-file=.env tests/live-smoke.js
 
 ## Version history
 
-### Unreleased
+### 0.4.0
 
 Added the nine endpoints introduced in the [Go SDK v1.4.0](https://github.com/seventhingsCompany/customer-api-go/releases/tag/v1.4.0) and [PHP SDK v1.4.0](https://github.com/seventhingsCompany/customer-api-php/releases/tag/v1.4.0), matching API spec `v0.19571_89862c247_20260915`: barcode lookup, history for six resources, PDF template discovery, and PDF report generation. Person sorting now uses the API's deep-object query format, and empty legacy person UUIDs correctly fall back to the newer UUID field.
 

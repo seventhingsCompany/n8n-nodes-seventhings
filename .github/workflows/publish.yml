@@ -1,4 +1,4 @@
-# Publishes this n8n community node package to npm on every version tag push.
+# Publishes this n8n community node package to npm on version tag pushes or manual retries.
 #
 # Starting May 1 2026, n8n requires all community nodes to be published via
 # GitHub Actions with npm provenance statements. This workflow satisfies that
@@ -39,9 +39,10 @@
 #
 # ─── TAG CONVENTION ────────────────────────────────────────────────────────────
 #
-# This workflow triggers on tags matching "*.*.*" (e.g. 0.2.0).
-# If you prefer tags with a "v" prefix (e.g. v0.2.0), change the filter to:
-#   tags: ['v*.*.*']
+# This workflow triggers on tags matching "*.*.*" (e.g. 0.4.0 or v0.4.0).
+# The tag determines the npm version, including when a release is created in
+# GitHub without first bumping package.json. Both package manifests are updated
+# only in the runner checkout; the existing tag is never moved.
 #
 # ─── RELEASE PROCESS ───────────────────────────────────────────────────────────
 #
@@ -51,15 +52,26 @@
 #
 # This will lint, build, prompt for a version bump, update the changelog,
 # commit, tag, and push — which triggers this workflow to publish to npm.
+# Alternatively, create a version tag/release in GitHub. To retry an unpublished
+# tag after a workflow fix, run this workflow manually from main with that tag.
 
 name: Publish
 
 on:
   push:
     tags:
-      # Matches 0.1.0, 1.2.3, 2.0.0-rc.1, etc.
-      # See "TAG CONVENTION" above if you prefer tags with a "v" prefix.
+      # Matches 0.4.0, v0.4.0, 2.0.0-rc.1, etc.
       - '*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing version tag to publish (for example, 0.4.0)'
+        required: true
+        type: string
+
+concurrency:
+  group: publish-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -74,12 +86,31 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Manual retries use the current workflow but build the original tagged source.
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
           cache: 'npm'
+
+      - name: Set package version from release tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          RELEASE_VERSION="${RELEASE_TAG#v}"
+          if [[ ! "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::The release tag must be a semantic version, optionally prefixed with v."
+            exit 1
+          fi
+          npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version --ignore-scripts
+          if [[ "$(npm pkg get version)" != "\"$RELEASE_VERSION\"" ]]; then
+            echo "::error::npm normalized the tag to a different version. Use a canonical npm version tag."
+            exit 1
+          fi
 
       - name: Install dependencies
         run: 'npm ci'
