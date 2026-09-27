@@ -133,10 +133,7 @@ const handlers: Record<string, PersonHandler> = {
 		const options = this.getNodeParameter('options', i, {}) as IDataObject;
 		const qs: IDataObject = {};
 		if (options.sortBy) {
-			qs.sort_by = options.sortBy;
-		}
-		if (options.order) {
-			qs.order = options.order;
+			qs[`sort[${options.sortBy}]`] = String(options.order ?? 'asc').toUpperCase();
 		}
 		const records = await collectPersons.call(this, returnAll, limit, qs);
 		return records.map((json) => ({ json, pairedItem: { item: i } }));

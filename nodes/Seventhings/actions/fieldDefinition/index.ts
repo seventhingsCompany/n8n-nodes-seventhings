@@ -129,7 +129,7 @@ const handlers: Record<string, FieldDefinitionHandler> = {
 
 	async getAll(this: IExecuteFunctions, i: number) {
 		const template = getTemplate.call(this, i);
-		const defs = await fetchFieldDefinitions.call(this, template);
+		const defs = await fetchFieldDefinitions.call(this, template, true);
 		return defs.map((json) => ({ json: json as IDataObject, pairedItem: { item: i } }));
 	},
 };

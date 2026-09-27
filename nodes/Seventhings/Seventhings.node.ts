@@ -16,6 +16,10 @@ import { roomFields } from './descriptions/RoomDescription';
 import { fileFields } from './descriptions/FileDescription';
 import { personFields, personOperations } from './descriptions/PersonDescription';
 import { userFields, userOperations } from './descriptions/UserDescription';
+import { historyFields } from './descriptions/HistoryDescription';
+import { reportFields, reportOperations } from './descriptions/ReportDescription';
+import { executeHistoryOperation, isHistoryResource } from './actions/history';
+import { executeReportOperation, isReportOperationSupported } from './actions/report';
 import {
 	fieldDefinitionFields,
 	fieldDefinitionOperations,
@@ -75,6 +79,7 @@ const resourceProperty: INodeProperties = {
 		{ name: 'Location', value: 'location' },
 		{ name: 'Person', value: 'person' },
 		{ name: 'Rental Case', value: 'rentalCase' },
+		{ name: 'Report', value: 'report' },
 		{ name: 'Room', value: 'room' },
 		{ name: 'Task', value: 'task' },
 		{ name: 'User', value: 'user' },
@@ -93,6 +98,7 @@ const taskOperations: INodeProperties = {
 		{ name: 'Create', value: 'create', description: 'Create a task', action: 'Create a task' },
 		{ name: 'Delete', value: 'delete', description: 'Delete a task', action: 'Delete a task' },
 		{ name: 'Get', value: 'get', description: 'Get a task by UUID', action: 'Get a task' },
+		{ name: 'Get History', value: 'getHistory', description: 'Get recorded changes of a task, newest first', action: 'Get task history' },
 		{ name: 'Get Many', value: 'getAll', description: 'Get many tasks', action: 'Get many tasks' },
 		{ name: 'Reopen', value: 'reopen', description: 'Reopen a task', action: 'Reopen a task' },
 		{ name: 'Update', value: 'update', description: 'Update a task', action: 'Update a task' },
@@ -125,6 +131,7 @@ const rentalCaseOperations: INodeProperties = {
 			description: 'Get a rental case by UUID',
 			action: 'Get a rental case',
 		},
+		{ name: 'Get History', value: 'getHistory', description: 'Get recorded changes of a rental case, newest first', action: 'Get rental case history' },
 		{
 			name: 'Get Many',
 			value: 'getAll',
@@ -161,6 +168,7 @@ const locationOperations: INodeProperties = {
 			action: 'Delete a location',
 		},
 		{ name: 'Get', value: 'get', description: 'Get a location by UUID', action: 'Get a location' },
+		{ name: 'Get History', value: 'getHistory', description: 'Get recorded changes of a location, newest first', action: 'Get location history' },
 		{
 			name: 'Get Many',
 			value: 'getAll',
@@ -187,6 +195,7 @@ const roomOperations: INodeProperties = {
 		{ name: 'Create', value: 'create', description: 'Create a room', action: 'Create a room' },
 		{ name: 'Delete', value: 'delete', description: 'Delete a room', action: 'Delete a room' },
 		{ name: 'Get', value: 'get', description: 'Get a room by UUID', action: 'Get a room' },
+		{ name: 'Get History', value: 'getHistory', description: 'Get recorded changes of a room, newest first', action: 'Get room history' },
 		{ name: 'Get Many', value: 'getAll', description: 'Get many rooms', action: 'Get many rooms' },
 		{ name: 'Update', value: 'update', description: 'Update a room', action: 'Update a room' },
 	],
@@ -227,7 +236,7 @@ export class Seventhings implements INodeType {
 		group: ['output'],
 		version: 1,
 		subtitle: '={{$parameter["operation"] + ": " + $parameter["resource"]}}',
-		description: 'Manage assets, tasks, rental cases, locations, rooms and files in seventhings',
+		description: 'Manage seventhings records, retrieve history and generate PDF reports',
 		defaults: {
 			name: 'seventhings',
 		},
@@ -253,6 +262,7 @@ export class Seventhings implements INodeType {
 			fileOperations,
 			personOperations,
 			userOperations,
+			reportOperations,
 			...assetFields,
 			...circularityHubItemFields,
 			...circularityHubOrderFields,
@@ -264,6 +274,8 @@ export class Seventhings implements INodeType {
 			...fileFields,
 			...personFields,
 			...userFields,
+			...historyFields,
+			...reportFields,
 		],
 	};
 
@@ -282,6 +294,16 @@ export class Seventhings implements INodeType {
 			const operation = this.getNodeParameter('operation', i) as string;
 
 			try {
+				if (operation === 'getHistory' && isHistoryResource(resource)) {
+					returnData.push(...await executeHistoryOperation.call(this, resource, i));
+					continue;
+				}
+
+				if (resource === 'report' && isReportOperationSupported(operation)) {
+					returnData.push(...await executeReportOperation.call(this, operation, i));
+					continue;
+				}
+
 				if (resource === 'asset' && isAssetOperationSupported(operation)) {
 					const results = await executeAssetOperation.call(this, operation, i);
 					returnData.push(...results);

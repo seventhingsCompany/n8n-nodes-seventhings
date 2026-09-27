@@ -112,3 +112,28 @@ export async function seventhingsApiRequest(
 		throw new NodeApiError(this.getNode(), error as JsonObject);
 	}
 }
+
+/** Collect a paginated `{ items, total? }` endpoint, respecting the requested limit. */
+export async function seventhingsApiRequestAllItems(
+	this: SeventhingsRequestContext,
+	options: SeventhingsApiRequestOptions,
+	limit = Number.POSITIVE_INFINITY,
+): Promise<IDataObject[]> {
+	const collected: IDataObject[] = [];
+	const perPage = Math.min(limit, 100);
+	if (perPage <= 0) return collected;
+	for (let page = 1; ; page += 1) {
+		const response = (await seventhingsApiRequest.call(this, {
+			...options,
+			qs: { ...options.qs, page, per_page: perPage },
+		})) as IDataObject;
+		const items = Array.isArray(response.items) ? (response.items as IDataObject[]) : [];
+		collected.push(...items);
+		if (
+			collected.length >= limit ||
+			items.length < perPage ||
+			(typeof response.total === 'number' && collected.length >= response.total)
+		) break;
+	}
+	return collected.slice(0, limit);
+}

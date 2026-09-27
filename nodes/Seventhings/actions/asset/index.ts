@@ -24,7 +24,7 @@ import type {
 	IExecuteFunctions,
 	INodeExecutionData,
 } from 'n8n-workflow';
-import { NodeOperationError } from 'n8n-workflow';
+import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 import {
 	coerceFieldValues,
@@ -145,6 +145,17 @@ type AssetHandler = (
 ) => Promise<INodeExecutionData[]>;
 
 const handlers: Record<string, AssetHandler> = {
+	async getByBarcode(this: IExecuteFunctions, i: number) {
+		const barcode = this.getNodeParameter('barcode', i, '') as string;
+		if (typeof barcode !== 'string' || barcode.length === 0) {
+			throw new NodeOperationError(this.getNode(), 'A barcode is required.', { itemIndex: i });
+		}
+		const record = (await seventhingsApiRequest.call(this, {
+			path: `${OBJECT_PATH}/by-barcode/${encodeURIComponent(barcode)}`,
+		})) as IDataObject;
+		return [{ json: normalizeAsset(record), pairedItem: { item: i } }];
+	},
+
 	async create(this: IExecuteFunctions, i: number) {
 		const defs = await fetchAssetFieldDefinitions.call(this);
 		const mapped = getMappedFields.call(this, i);
@@ -291,8 +302,8 @@ const handlers: Record<string, AssetHandler> = {
  *   - If the target field is already occupied (some fields hold a single file),
  *     the API returns HTTP 207 with a per-item message like
  *     `["File ... already exists in field key ..."]` and does NOT add the file.
- *     n8n surfaces that 207 as a `NodeApiError` carrying the message — a clear,
- *     actionable failure — so no special handling is added here.
+ *     HTTP helpers accept 207 as success, so inspect the full response and
+ *     surface its per-item error messages explicitly.
  */
 async function setAssetFile(
 	this: IExecuteFunctions,
@@ -319,12 +330,19 @@ async function setAssetFile(
 		throw new NodeOperationError(this.getNode(), error as Error, { itemIndex: i });
 	}
 
-	await seventhingsApiRequest.call(this, {
+	const response = (await seventhingsApiRequest.call(this, {
 		method: 'POST',
 		path: `${OBJECT_PATH}/${assetUuid}/${action}`,
 		body: [{ 'field-key': fieldKey, 'file-uuid': fileUuid }],
 		headers: { 'Content-Type': 'application/json' },
-	});
+		returnFullResponse: true,
+	})) as { statusCode: number; body?: unknown };
+	if (response.statusCode === 207) {
+		const message = typeof response.body === 'string'
+			? response.body
+			: JSON.stringify(response.body);
+		throw new NodeApiError(this.getNode(), { message: message || 'File operation partially failed', statusCode: 207 });
+	}
 
 	return [
 		{

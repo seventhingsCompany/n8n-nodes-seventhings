@@ -8,6 +8,7 @@
 export {
 	CREDENTIALS_NAME,
 	seventhingsApiRequest,
+	seventhingsApiRequestAllItems,
 	type SeventhingsApiRequestOptions,
 	type SeventhingsRequestContext,
 } from './apiRequest';

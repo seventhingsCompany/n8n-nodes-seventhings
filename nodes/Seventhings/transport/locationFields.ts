@@ -12,6 +12,7 @@
 import type { IDataObject } from 'n8n-workflow';
 
 import { normalizeTimestamps } from './timestamps';
+import { withRecordFields } from './recordFields';
 
 /**
  * Normalize a location record: ensure `uuid`, `location_uuid` and `id` are
@@ -21,6 +22,7 @@ import { normalizeTimestamps } from './timestamps';
  * we read that first and mirror it onto `uuid` for a consistent downstream shape.
  */
 export function normalizeLocation(item: IDataObject, fallbackUuid?: string): IDataObject {
+	item = withRecordFields(item);
 	const uuid =
 		(item.location_uuid as string | undefined) ?? (item.uuid as string | undefined) ?? fallbackUuid;
 	const normalized = normalizeTimestamps(item);

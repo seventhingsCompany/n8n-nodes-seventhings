@@ -31,7 +31,7 @@ import {
 /** Best-effort human label for an asset row in the picker. */
 function assetLabel(item: IDataObject, uuid: string): string {
 	const candidate =
-		item.name ?? item.description ?? item.barcode ?? item.label ?? item.title;
+		item.inventory_name ?? item.name ?? item.description ?? item.barcode ?? item.label ?? item.title;
 	const text = typeof candidate === 'string' && candidate.trim() !== '' ? candidate : uuid;
 	return text === uuid ? uuid : `${text} (${uuid})`;
 }

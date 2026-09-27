@@ -135,7 +135,7 @@ export const locationFields: INodeProperties[] = [
 	locationUpdateFields,
 
 	// ---- Get / Delete -------------------------------------------------------
-	locationLocator(['get']),
+	locationLocator(['get', 'getHistory']),
 	locationLocator(['delete']),
 
 	// ---- Get Many -----------------------------------------------------------

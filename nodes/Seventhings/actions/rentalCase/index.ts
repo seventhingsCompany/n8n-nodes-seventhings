@@ -37,6 +37,7 @@ import {
 	locationHeader,
 	normalizeRentalCase,
 	seventhingsApiRequest,
+	seventhingsApiRequestAllItems,
 	toApiDate,
 	uuidFromLocation,
 	validateUuid,
@@ -314,19 +315,13 @@ const handlers: Record<string, RentalCaseHandler> = {
 		const filters = this.getNodeParameter('filters', i, {}) as IDataObject;
 		const limit = returnAll ? undefined : (this.getNodeParameter('limit', i, 50) as number);
 
-		// The rental-cases endpoint returns an `{ items, page, per_page, total }`
-		// wrapper and honors pagination. Request only what we need (per_page) when a
-		// limit applies; read the items array out of the wrapper.
-		const response = (await seventhingsApiRequest.call(this, {
+		const list = await seventhingsApiRequestAllItems.call(this, {
 			path: RENTAL_CASES_PATH,
 			qs: {
-				'sort[updated_at]': 'DESC',
-				...(limit !== undefined ? { per_page: limit } : {}),
+				'sort[created_at]': 'DESC',
 				...buildFiltersQs(filters),
 			},
-		})) as IDataObject;
-
-		const list = Array.isArray(response.items) ? (response.items as IDataObject[]) : [];
+		}, limit);
 		const normalized = list.map((rentalCase) => normalizeRentalCase(rentalCase));
 		const limited = limit === undefined ? normalized : normalized.slice(0, limit);
 
