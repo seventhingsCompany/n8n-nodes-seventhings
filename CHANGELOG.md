@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- npm publishing derives the package version from the release tag and updates
+  both package manifests in CI before building. GitHub-created releases no
+  longer attempt to republish the previous package version.
+- Added a manual publishing retry for existing, unpublished version tags using
+  the updated workflow and the original tagged source.
+- Aligned repository package and lockfile version metadata with `0.4.0`.
+
+## [0.4.0] - 2026-09-27
+
 ### Added
 
 - **Asset › Get by Barcode**, including archived assets, with raw scancodes safely URL-encoded.
