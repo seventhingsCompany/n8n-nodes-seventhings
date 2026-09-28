@@ -7,8 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-09-28
+
 ### Fixed
 
+- Corrected the Room resource's Building dropdown labels to **Building Name or ID**
+  and added the required expression guidance to their descriptions for Create,
+  Update, and Get Many filters. Removed the four associated ESLint suppressions
+  to address n8n's community-package review feedback.
+- Removed `usableAsTool` from the polling trigger, which cannot be invoked as an
+  AI tool, to satisfy the current community-package scanner.
+- Updated the locked n8n node CLI so local and CI linting recognize that triggers
+  must not be exposed as AI tools.
 - npm publishing derives the package version from the release tag and updates
   both package manifests in CI before building. GitHub-created releases no
   longer attempt to republish the previous package version.

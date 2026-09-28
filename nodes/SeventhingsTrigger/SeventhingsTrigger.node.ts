@@ -125,10 +125,6 @@ export class SeventhingsTrigger implements INodeType {
 		defaults: {
 			name: 'seventhings Trigger',
 		},
-		// Present to satisfy the node-usable-as-tool lint rule. n8n never exposes a
-		// polling trigger as an AI agent tool, so this has no runtime effect here;
-		// the n8n type only permits `true`, not `false`.
-		usableAsTool: true,
 		polling: true,
 		inputs: [],
 		outputs: [NodeConnectionTypes.Main],
