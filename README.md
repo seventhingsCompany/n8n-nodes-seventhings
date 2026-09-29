@@ -160,7 +160,17 @@ or create a version tag/release in GitHub (for example, `0.4.0` or `v0.4.0`).
 The Publish workflow uses that tag as the npm version and updates `package.json`
 and `package-lock.json` in the runner before building and publishing with provenance.
 Creating a tag in GitHub does not update version metadata or the changelog on `main`;
-keep those files aligned when preparing a release.
+after each successful release, update `main` so `package.json` and both root version
+entries in `package-lock.json` match the latest published npm version. For example,
+after publishing `0.4.1`, run this on `main` if the versions are not already aligned:
+
+```sh
+npm version 0.4.1 --no-git-tag-version --ignore-scripts
+```
+
+Update `CHANGELOG.md` to reflect the release, then commit and merge these changes
+into `main` through the normal review process. Verify the manifests on `main` match
+the published version even when the release was prepared on another branch.
 
 To recover an unpublished tag after merging a workflow fix, use **Actions → Publish →
 Run workflow**, select `main`, and enter the existing tag. For example:
