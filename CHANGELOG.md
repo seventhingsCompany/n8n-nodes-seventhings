@@ -7,10 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-09-29
+
 ### Changed
 
 - Documented the post-release step to synchronize package and lockfile versions
   on `main` with the latest published npm version.
+
+### Fixed
+
+- Aligned package and lockfile version metadata at `0.4.3` for the next npm release
+  and automatic community-package review.
 
 ## [0.4.1] - 2026-09-28
 
