@@ -207,6 +207,10 @@ are immutable, so only retry versions that have not already been published.
 
 ## Version history
 
+### 0.5.0
+
+Added Catalog Item CRUD, timed rentals, optional reminders, custom thumbnail dimensions, and configurable FIFO throttling (default 200 requests/minute per connection per process), matching the October API spec and Go SDK v1.5.1. HTTP 429 errors expose `Retry-After` without automatically retrying requests. Task/rental updates preserve attachments and disabled reminders. OAuth authorization-code/PKCE is deliberately excluded.
+
 ### 0.4.0
 
 Added the nine endpoints introduced in the [Go SDK v1.4.0](https://github.com/seventhingsCompany/customer-api-go/releases/tag/v1.4.0) and [PHP SDK v1.4.0](https://github.com/seventhingsCompany/customer-api-php/releases/tag/v1.4.0), matching API spec `v0.19571_89862c247_20260915`: barcode lookup, history for six resources, PDF template discovery, and PDF report generation. Person sorting now uses the API's deep-object query format, and empty legacy person UUIDs correctly fall back to the newer UUID field.

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-18
+
 ### Added
 
 - October 2026 API support (`v0.20143_c5f8b54b3_20261005`), aligned with Go SDK v1.5.1; OAuth authorization-code/PKCE is deliberately excluded.
