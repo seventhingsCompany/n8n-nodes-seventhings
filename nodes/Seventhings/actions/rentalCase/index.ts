@@ -7,12 +7,13 @@
  * the request shapes were corrected against the **live API** (the Zapier source
  * is not a faithful contract — verified against a real tenant).
  *
- * Live-API schema notes (Phase 4 verification):
+ * API schema notes (October 2026):
  *   - Create/Update use a STRICT full body: `title`, `renter {type,value}` (non-null),
  *     `references [{type:'asset',uuid}]` (non-empty), `issue_date`/`due_date` as
- *     **date-only `YYYY-MM-DD`**, `issue_date_reminder`/`due_date_reminder`
- *     `{unit,value}` (non-null), `comment`, `responsible_user_uuid`, `attachments []`.
- *     Omitting renter → 500; null reminders / partial bodies / datetime dates → 400.
+ *     **date-only `YYYY-MM-DD`**, optional nullable reminders, `comment`,
+ *     `responsible_user_uuid`, and attachment UUIDs. Timed rentals additionally
+ *     accept `is_full_day`, `issue_at`, and `due_at`.
+ *     Omitting renter currently returns 500; validate it locally.
  *   - Update is PUT (returns 204); PATCH is NOT supported for this resource (404).
  *   - The list endpoint returns an `{ items, page, per_page, total }` wrapper and
  *     honors `per_page`/`page`. GET returns `references` already reduced to
@@ -64,20 +65,19 @@ type Reference = { type: string; uuid: string };
 
 /**
  * The complete set of writable rental-case fields. The live API write schema is
- * strict, so every key is always present and the renter / reminders / reference
- * must be non-null/non-empty.
+ * uses full replacement. Preserve writable values during fetch-merge-PUT.
  */
 interface RentalCaseBody extends IDataObject {
 	title: string;
 	renter: Renter;
 	references: Reference[];
 	issue_date: string;
-	issue_date_reminder: Reminder;
+	issue_date_reminder: Reminder | null;
 	due_date: string;
-	due_date_reminder: Reminder;
+	due_date_reminder: Reminder | null;
 	comment: string;
 	responsible_user_uuid: string;
-	attachments: IDataObject[];
+	attachments: string[];
 }
 
 /** Build a reminder object from a unit + value (the API requires a non-null one). */
@@ -105,12 +105,11 @@ function buildRenter(type: unknown, value: unknown): Renter {
 }
 
 /**
- * Build the full create body from the required top-level inputs. The live API
- * rejects partial bodies, so every writable key is present and non-null. Dates
- * are reduced to `YYYY-MM-DD` (n8n's dateTime is ISO; the API rejects datetime).
+ * Retain existing create defaults, adding timing/reminder overrides only when
+ * selected. Date fields stay YYYY-MM-DD; timestamp fields retain their offsets.
  */
 function buildCreateBody(this: IExecuteFunctions, i: number): RentalCaseBody {
-	return {
+	const body: RentalCaseBody = {
 		title: this.getNodeParameter('title', i) as string,
 		renter: buildRenter(
 			this.getNodeParameter('renterType', i, 'plain'),
@@ -131,13 +130,45 @@ function buildCreateBody(this: IExecuteFunctions, i: number): RentalCaseBody {
 		responsible_user_uuid: this.getNodeParameter('responsibleUserUuid', i) as string,
 		attachments: [],
 	};
+	applyTiming.call(this, body, this.getNodeParameter('rentalTiming', i, {}) as IDataObject, i);
+	validateRenter.call(this, body, i);
+	return body;
+}
+
+function validateRenter(this: IExecuteFunctions, body: RentalCaseBody, i: number): void {
+	if (!body.renter.value.trim()) {
+		throw new NodeOperationError(this.getNode(), 'Rental case: a renter value is required.', { itemIndex: i });
+	}
+}
+
+/** Omit unchanged timing on PUT so the API preserves times when dates move. */
+function applyTiming(
+	this: IExecuteFunctions, body: RentalCaseBody, changes: IDataObject, i: number, existing: IDataObject = {},
+): void {
+	if (typeof changes.isFullDay === 'boolean') body.is_full_day = changes.isFullDay;
+	if (changes.isFullDay !== true && (changes.isFullDay === false || changes.issueAt !== undefined || changes.dueAt !== undefined)) {
+		const issueAt = changes.issueAt ?? existing.issue_at;
+		const dueAt = changes.dueAt ?? existing.due_at;
+		const valid = (value: unknown): value is string => typeof value === 'string'
+			&& /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/.test(value)
+			&& Number.isFinite(Date.parse(value));
+		if (!valid(issueAt) || !valid(dueAt) || Date.parse(dueAt) <= Date.parse(issueAt)) {
+			throw new NodeOperationError(this.getNode(), 'Timed rentals require Issue At and Due At timestamps with a timezone, and Due At must be after Issue At.', { itemIndex: i });
+		}
+		body.issue_at = issueAt;
+		body.due_at = dueAt;
+		// Explicit timestamps select a timed rental; the API derives dates in UTC.
+		body.is_full_day = false;
+	}
+	if (changes.disableIssueReminder === true) body.issue_date_reminder = null;
+	if (changes.disableDueReminder === true) body.due_date_reminder = null;
 }
 
 /**
  * Reduce a record fetched from the API into the writable body shape. GET already
  * returns `references` as `{type,uuid}`, but we re-map defensively. Reminders and
  * renter come back in the same shape the write schema wants. Dates are reduced to
- * date-only. Attachments are dropped to `[]` (editing them is Phase 6).
+ * date-only. Expanded attachment objects are reduced to their UUIDs.
  */
 function sanitizeExistingRentalCase(existing: IDataObject): RentalCaseBody {
 	const references = Array.isArray(existing.references)
@@ -155,12 +186,15 @@ function sanitizeExistingRentalCase(existing: IDataObject): RentalCaseBody {
 		renter: buildRenter(renter?.type, renter?.value),
 		references,
 		issue_date: toApiDate(existing.issue_date),
-		issue_date_reminder: buildReminder(issueReminder?.unit, issueReminder?.value),
+		issue_date_reminder: issueReminder ? buildReminder(issueReminder.unit, issueReminder.value) : null,
 		due_date: toApiDate(existing.due_date),
-		due_date_reminder: buildReminder(dueReminder?.unit, dueReminder?.value),
+		due_date_reminder: dueReminder ? buildReminder(dueReminder.unit, dueReminder.value) : null,
 		comment: String(existing.comment ?? ''),
 		responsible_user_uuid: String(existing.responsible_user_uuid ?? ''),
-		attachments: [],
+		attachments: Array.isArray(existing.attachments) ? (existing.attachments as unknown[]).map((file) =>
+			typeof file === 'string' ? file : String((file as IDataObject)?.uuid ?? ''),
+		).filter(Boolean) : [],
+		...(existing.status === undefined ? {} : { status: existing.status }),
 	};
 }
 
@@ -194,14 +228,14 @@ function applyRentalCaseUpdates(base: RentalCaseBody, updates: IDataObject): Ren
 	}
 	if (updates.issueDateReminderUnit !== undefined || updates.issueDateReminderValue !== undefined) {
 		body.issue_date_reminder = buildReminder(
-			updates.issueDateReminderUnit ?? base.issue_date_reminder.unit,
-			updates.issueDateReminderValue ?? base.issue_date_reminder.value,
+			updates.issueDateReminderUnit ?? base.issue_date_reminder?.unit,
+			updates.issueDateReminderValue ?? base.issue_date_reminder?.value,
 		);
 	}
 	if (updates.dueDateReminderUnit !== undefined || updates.dueDateReminderValue !== undefined) {
 		body.due_date_reminder = buildReminder(
-			updates.dueDateReminderUnit ?? base.due_date_reminder.unit,
-			updates.dueDateReminderValue ?? base.due_date_reminder.value,
+			updates.dueDateReminderUnit ?? base.due_date_reminder?.unit,
+			updates.dueDateReminderValue ?? base.due_date_reminder?.value,
 		);
 	}
 
@@ -292,6 +326,8 @@ const handlers: Record<string, RentalCaseHandler> = {
 		// overlay the user's changes.
 		const existing = await fetchRentalCase.call(this, uuid);
 		const body = applyRentalCaseUpdates(sanitizeExistingRentalCase(existing), updates);
+		applyTiming.call(this, body, updates, i, existing);
+		validateRenter.call(this, body, i);
 
 		await seventhingsApiRequest.call(this, {
 			method: 'PUT',

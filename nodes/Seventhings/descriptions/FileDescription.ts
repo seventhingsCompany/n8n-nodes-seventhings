@@ -49,6 +49,16 @@ function fileLocator(operations: string[]): INodeProperties {
 export const fileFields: INodeProperties[] = [
 	fileLocator(['get', 'downloadData', 'downloadThumbnail']),
 	{
+		displayName: 'Thumbnail Size', name: 'thumbnailSize', type: 'collection', default: {},
+		placeholder: 'Add Dimension',
+		description: 'Provide both dimensions, or leave both unset for the API default (150 × 100)',
+		displayOptions: { show: { resource: ['file'], operation: ['downloadThumbnail'] } },
+		options: [
+			{ displayName: 'Width', name: 'width', type: 'number', default: 300, typeOptions: { minValue: 1, maxValue: 2000, numberPrecision: 0 } },
+			{ displayName: 'Height', name: 'height', type: 'number', default: 200, typeOptions: { minValue: 1, maxValue: 2000, numberPrecision: 0 } },
+		],
+	},
+	{
 		displayName: 'Source',
 		name: 'source',
 		type: 'options',

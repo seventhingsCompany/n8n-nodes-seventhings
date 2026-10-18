@@ -9,6 +9,8 @@ import type {
 import { NodeApiError, NodeConnectionTypes, NodeOperationError } from 'n8n-workflow';
 
 import { assetFields, assetOperations } from './descriptions/AssetDescription';
+import { catalogItemFields, catalogItemOperations } from './descriptions/CatalogItemDescription';
+import { executeCatalogItemOperation } from './actions/catalogItem';
 import { taskFields } from './descriptions/TaskDescription';
 import { rentalCaseFields } from './descriptions/RentalCaseDescription';
 import { locationFields } from './descriptions/LocationDescription';
@@ -72,6 +74,7 @@ const resourceProperty: INodeProperties = {
 	noDataExpression: true,
 	options: [
 		{ name: 'Asset', value: 'asset' },
+		{ name: 'Catalog Item', value: 'catalogItem' },
 		{ name: 'Circularity Hub Item', value: 'circularityHubItem' },
 		{ name: 'Circularity Hub Order', value: 'circularityHubOrder' },
 		{ name: 'Field Definition', value: 'fieldDefinition' },
@@ -252,6 +255,7 @@ export class Seventhings implements INodeType {
 		properties: [
 			resourceProperty,
 			assetOperations,
+			catalogItemOperations,
 			circularityHubItemOperations,
 			circularityHubOrderOperations,
 			fieldDefinitionOperations,
@@ -264,6 +268,7 @@ export class Seventhings implements INodeType {
 			userOperations,
 			reportOperations,
 			...assetFields,
+			...catalogItemFields,
 			...circularityHubItemFields,
 			...circularityHubOrderFields,
 			...fieldDefinitionFields,
@@ -294,6 +299,10 @@ export class Seventhings implements INodeType {
 			const operation = this.getNodeParameter('operation', i) as string;
 
 			try {
+				if (resource === 'catalogItem') {
+					returnData.push(...await executeCatalogItemOperation.call(this, operation, i));
+					continue;
+				}
 				if (operation === 'getHistory' && isHistoryResource(resource)) {
 					returnData.push(...await executeHistoryOperation.call(this, resource, i));
 					continue;

@@ -19,12 +19,12 @@ let token;
 const only = process.argv.find((arg) => arg.startsWith('--only='))?.slice('--only='.length).toLowerCase();
 
 async function request(options, authenticated = false) {
+  if (authenticated) options = await new SeventhingsApi().authenticate({ ...credentials, sessionToken: token }, options);
   const url = new URL(options.url, options.baseURL);
   for (const [key, value] of Object.entries(options.qs || {})) {
     for (const entry of Array.isArray(value) ? value : [value]) url.searchParams.append(key, String(entry));
   }
   const headers = { ...options.headers };
-  if (authenticated) headers.Authorization = `Bearer ${token}`;
   let body = options.body;
   if (body && !(body instanceof URLSearchParams) && !Buffer.isBuffer(body) && typeof body !== 'string') {
     body = JSON.stringify(body);
@@ -106,14 +106,14 @@ async function main() {
   const execute = async (params) => {
     const items = (await node.execute.call(context(params)))[0].map((item) => item.json);
     for (const item of items) {
-      if (item.fields?.id !== undefined) assert.equal(item.id, item.fields.id, 'Nested record ID must be available to downstream nodes');
+      if (params.resource !== 'catalogItem' && item.fields?.id !== undefined) assert.equal(item.id, item.fields.id, 'Nested record ID must be available to downstream nodes');
     }
     return items;
   };
   let hasNumericLocations = false;
   let assets = [];
   const resources = node.description.properties.find((p) => p.name === 'resource').options;
-  const idParameters = { asset: 'assetId', task: 'taskId', rentalCase: 'rentalCaseId', location: 'locationId', room: 'roomId', person: 'personId', user: 'userId', file: 'fileId', fieldDefinition: 'fieldDefinitionId', circularityHubItem: 'id', circularityHubOrder: 'id' };
+  const idParameters = { asset: 'assetId', catalogItem: 'catalogItemId', task: 'taskId', rentalCase: 'rentalCaseId', location: 'locationId', room: 'roomId', person: 'personId', user: 'userId', file: 'fileId', fieldDefinition: 'fieldDefinitionId', circularityHubItem: 'id', circularityHubOrder: 'id' };
   for (const { value: resource } of resources) {
     if (resource === 'report') continue;
     const items = await step(`${resource}.getAll`, () => execute({ resource, operation: 'getAll', returnAll: false, limit: 2, template: 'asset' }));

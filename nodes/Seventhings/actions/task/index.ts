@@ -48,19 +48,19 @@ function getTaskUuid(this: IExecuteFunctions, i: number): string {
 
 /**
  * The complete set of writable task fields the API's create/update schema
- * requires to be present. `deadline` must be a non-null string and
- * `reminders`/`assignees`/`references` must be non-empty (enforced by the API);
+ * requires to be present. Reminders may be omitted or explicitly empty;
+ * `assignees`/`references` must be non-empty (enforced by the API);
  * `comment`/`recurring_schedule` may be null and `attachments` may be empty.
  */
 interface TaskBody extends IDataObject {
 	title: string;
 	comment: string | null;
 	deadline: string | null;
-	reminders: Array<{ unit: string; value: number }>;
+	reminders?: Array<{ unit: string; value: number }>;
 	recurring_schedule: IDataObject | null;
 	assignees: string[];
 	references: Array<{ type: string; uuid: string }>;
-	attachments: IDataObject[];
+	attachments: string[];
 }
 
 /** Build a single reminder array from a unit + value, or `[]` when unset. */
@@ -106,8 +106,6 @@ function buildCreateBody(this: IExecuteFunctions, i: number): TaskBody {
 	// The deadline is a `dateTime` input (ISO `...T...Z`), but the API's create
 	// schema is `format: date`, so reduce it to a bare `YYYY-MM-DD`.
 	const deadline = toApiDate(this.getNodeParameter('deadline', i, '') as string);
-	// `reminders` is `minItems: 1`; if the user cleared it, fall back to a
-	// zero-day reminder so the body still satisfies the schema.
 	const reminders = buildReminders(
 		this.getNodeParameter('reminderUnit', i, 'days'),
 		this.getNodeParameter('reminderValue', i, 1),
@@ -117,12 +115,15 @@ function buildCreateBody(this: IExecuteFunctions, i: number): TaskBody {
 		title: this.getNodeParameter('title', i) as string,
 		comment: comment ? comment : null,
 		deadline,
-		reminders: reminders.length > 0 ? reminders : [{ unit: 'days', value: 0 }],
+		reminders,
 		recurring_schedule: null,
 		assignees,
 		references: buildReferences(this.getNodeParameter('referenceAssetUuid', i, '')),
 		attachments: [],
 	};
+	const reminderMode = this.getNodeParameter('reminderMode', i, 'custom');
+	if (reminderMode === 'default') delete body.reminders;
+	if (reminderMode === 'none') body.reminders = [];
 
 	if (typeof additional.notify === 'boolean') {
 		body.notify = additional.notify;
@@ -160,8 +161,7 @@ function validateCreateBody(this: IExecuteFunctions, i: number, body: TaskBody):
 /**
  * Reduce a record fetched from the API into a body the write schema accepts:
  * `references` comes back expanded (with name/status/id) but the schema wants
- * just `{ type, uuid }`; `attachments` come back as file objects but the schema
- * wants an empty/UUID form, so we drop them to `[]`.
+ * just `{ type, uuid }`; attachments are reduced to file UUIDs, not discarded.
  */
 function sanitizeExistingTask(existing: IDataObject): TaskBody {
 	const references = Array.isArray(existing.references)
@@ -175,7 +175,7 @@ function sanitizeExistingTask(existing: IDataObject): TaskBody {
 				unit: String(rem.unit ?? ''),
 				value: Number(rem.value ?? 0),
 			}))
-		: [];
+		: undefined;
 
 	const existingDeadline = existing.deadline as string | null;
 	return {
@@ -184,12 +184,11 @@ function sanitizeExistingTask(existing: IDataObject): TaskBody {
 		// The API's date fields are `format: date`; normalize any datetime the
 		// GET returns so the fetch-merge-PUT round-trip stays schema-valid.
 		deadline: existingDeadline ? toApiDate(existingDeadline) : null,
-		reminders,
+		...(reminders === undefined ? {} : { reminders }),
 		recurring_schedule: (existing.recurring_schedule as IDataObject | null) ?? null,
 		assignees: Array.isArray(existing.assignees) ? (existing.assignees as string[]) : [],
 		references,
-		// Editing attachments is out of scope (Phase 6); preserve none on update.
-		attachments: [],
+		attachments: attachmentUuids(existing.attachments),
 	};
 }
 
@@ -222,11 +221,20 @@ function applyTaskUpdates(base: TaskBody, additional: IDataObject): TaskBody {
 			body.reminders = reminders;
 		}
 	}
+	if (additional.reminderMode === 'none') body.reminders = [];
+	if (additional.reminderMode === 'default') delete body.reminders;
 	if (typeof additional.notify === 'boolean') {
 		body.notify = additional.notify;
 	}
 
 	return body;
+}
+
+/** PUT expects file UUIDs, whereas GET expands attachments to file objects. */
+function attachmentUuids(value: unknown): string[] {
+	return Array.isArray(value) ? value.map((file: string | IDataObject) =>
+		typeof file === 'string' ? file : String(file.uuid ?? ''),
+	).filter(Boolean) : [];
 }
 
 /** GET a task by UUID and normalize it (used after create/update/close/reopen). */

@@ -109,9 +109,21 @@ async function downloadFileBinary(
 	uuid: string,
 	kind: 'data' | 'thumbnail',
 ): Promise<INodeExecutionData[]> {
+	const qs: IDataObject = {};
+	if (kind === 'thumbnail') {
+		const size = this.getNodeParameter('thumbnailSize', i, {}) as IDataObject;
+		if (size.width !== undefined || size.height !== undefined) {
+			if (![size.width, size.height].every((value) => typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 2000)) {
+				throw new NodeOperationError(this.getNode(), 'Thumbnail width and height must both be integers from 1 to 2000.', { itemIndex: i });
+			}
+			qs.width = size.width;
+			qs.height = size.height;
+		}
+	}
 	const metadata = await fetchFile.call(this, uuid);
 	const response = (await seventhingsApiRequest.call(this, {
 		path: `${FILE_PATH}/${uuid}/${kind}`,
+		...(Object.keys(qs).length > 0 ? { qs } : {}),
 		json: false,
 		encoding: 'arraybuffer',
 		returnFullResponse: true,

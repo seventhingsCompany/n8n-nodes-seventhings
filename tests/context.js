@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const { Seventhings } = require('../dist/nodes/Seventhings/Seventhings.node');
+const { SeventhingsApi } = require('../dist/credentials/SeventhingsApi.credentials');
 
 const UUID = 'f4849c54-0437-477a-913c-479c4aebd928';
 const OTHER_UUID = 'a2c2e8c0-0000-0000-0000-000000000001';
@@ -20,13 +21,14 @@ function context(parameters = {}, steps = [], options = {}) {
       if (settings?.extractValue && value && typeof value === 'object') return value.value;
       return value;
     },
-    getCredentials: async () => ({ subdomain: ' Test ', ...options.credentials }),
+    getCredentials: async () => ({ subdomain: ' Test ', requestsPerMinute: 0, ...options.credentials }),
     continueOnFail: () => options.continueOnFail ?? false,
     getMode: () => options.mode ?? 'trigger',
     getWorkflowStaticData: () => state,
     helpers: {
       async httpRequestWithAuthentication(credential, request) {
         assert.equal(credential, 'seventhingsApi');
+        request = await new SeventhingsApi().authenticate(await ctx.getCredentials(), request);
         assert.equal(request.baseURL, 'https://test.seventhings.com');
         requests.push(request);
         const step = queue.shift();

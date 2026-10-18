@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- October 2026 API support (`v0.20143_c5f8b54b3_20261005`), aligned with Go SDK v1.5.1; OAuth authorization-code/PKCE is deliberately excluded.
+- **Catalog Item** Create, Get, Get Many (pagination, filters and sorting), Update and Delete. Updates explicitly replace the complete field map.
+- Timed rental inputs (`is_full_day`, `issue_at`, `due_at`), with timezone/order validation and nullable pickup/return reminders.
+- Custom thumbnail dimensions (both width and height, 1–2000 pixels).
+- Task reminder modes: custom, explicitly disabled, or omitted for API defaults.
+- Configurable FIFO throttling in credentials (default 200 requests/minute, 0 disables it), shared per connection within each n8n process, including login, authenticated requests and credential tests.
+- Actionable HTTP 429 `Retry-After` errors without automatic request replay, plus offline regression tests for the new contracts and rate-limit behavior.
+
+### Fixed
+
+- Task and rental-case PUT updates preserve attachment UUIDs instead of silently clearing attachments.
+- Rental updates preserve disabled reminders and status, and let the API preserve/move existing times when only dates are edited.
+
 ## [0.4.3] - 2026-09-29
 
 ### Changed
