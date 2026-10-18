@@ -4,8 +4,8 @@
  * The field set is driven by the **live API schema** (verified against a real
  * tenant), which is stricter than the Zapier source: create requires a title,
  * a non-null renter, at least one asset reference, issue/due dates (date-only
- * `YYYY-MM-DD`), a reminder object for each date, a comment, and a responsible
- * user. Those are therefore top-level **required** inputs for Create. Update
+ * `YYYY-MM-DD`), a comment, and a responsible user. Existing reminder defaults
+ * are retained, with optional nullable reminders and timed rentals. Update
  * fetch-merges the existing record, so every field is offered optionally in an
  * Additional Fields collection. Rental-case selection uses a resourceLocator
  * backed by `searchRentalCases`. Mirrors `TaskDescription.ts`.
@@ -81,6 +81,29 @@ const STATUS_OPTIONS = [
 	{ name: 'Pickup Overdue', value: 'pickup_overdue' },
 ];
 
+const timingOptions: INodeProperties[] = [
+	{
+		displayName: 'Full Day', name: 'isFullDay', type: 'boolean', default: true,
+		description: 'Whether to reserve whole days. Leave unset to let the API infer or preserve the rental type.',
+	},
+	{
+		displayName: 'Issue At', name: 'issueAt', type: 'dateTime', default: '',
+		description: 'Pickup timestamp including a timezone; pair with Due At for a timed rental',
+	},
+	{
+		displayName: 'Due At', name: 'dueAt', type: 'dateTime', default: '',
+		description: 'Exclusive return timestamp including a timezone; another rental may start at this time',
+	},
+	{
+		displayName: 'Disable Issue Reminder', name: 'disableIssueReminder', type: 'boolean', default: false,
+		description: 'Whether to disable the pickup reminder by sending null',
+	},
+	{
+		displayName: 'Disable Due Reminder', name: 'disableDueReminder', type: 'boolean', default: false,
+		description: 'Whether to disable the return reminder by sending null',
+	},
+];
+
 /**
  * The "Additional Fields" collection for Update. The API PUT is a strict full
  * replace (every field required and non-null); we fetch-merge the existing
@@ -96,6 +119,7 @@ const rentalCaseUpdateFields: INodeProperties = {
 	default: {},
 	displayOptions: { show: { resource: ['rentalCase'], operation: ['update'] } },
 	options: [
+		...timingOptions,
 		{
 			displayName: 'Comment',
 			name: 'comment',
@@ -189,6 +213,11 @@ const rentalCaseUpdateFields: INodeProperties = {
 };
 
 export const rentalCaseFields: INodeProperties[] = [
+	{
+		displayName: 'Timing and Reminders', name: 'rentalTiming', type: 'collection', default: {},
+		placeholder: 'Add Option', options: timingOptions,
+		displayOptions: { show: { resource: ['rentalCase'], operation: ['create'] } },
+	},
 	// ---- Create -------------------------------------------------------------
 	// The live API schema requires every one of these on create (verified against
 	// a real tenant): a renter, an asset reference, both date reminders, a comment

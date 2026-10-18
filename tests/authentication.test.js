@@ -6,7 +6,7 @@ const { NodeApiError, NodeOperationError } = require('n8n-workflow');
 const { context } = require('./context');
 
 const credential = new SeventhingsApi();
-const auth = { subdomain: ' TEST ', username: ' user@example.com ', password: 'a&b=+ ü', clientId: 'client&123' };
+const auth = { subdomain: ' TEST ', username: ' user@example.com ', password: 'a&b=+ ü', clientId: 'client&123', requestsPerMinute: 0 };
 
 test('session auth sends a correctly encoded password grant and returns the cached token', async () => {
   let calls = 0;
@@ -27,7 +27,8 @@ test('session auth sends a correctly encoded password grant and returns the cach
   assert.equal(token.typeOptions.expirable, true);
   assert.equal(token.typeOptions.password, true);
   assert.equal(credential.properties.find((p) => p.name === 'password').typeOptions.password, true);
-  assert.equal(credential.authenticate.properties.headers.Authorization, '=Bearer {{$credentials.sessionToken}}');
+  const authenticated = await credential.authenticate({ ...auth, sessionToken: 'token' }, { url: '/test', headers: { Accept: 'application/json' } });
+  assert.deepEqual(authenticated.headers, { Accept: 'application/json', Authorization: 'Bearer token' });
   assert.equal(credential.test.request.url, '/customer-api/v1/users');
 });
 

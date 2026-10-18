@@ -26,6 +26,7 @@ import type {
 import { NodeApiError, NodeOperationError } from 'n8n-workflow';
 
 import { buildBaseUrl } from './validators';
+import { retryAfterMilliseconds } from './rateLimit';
 
 /** The machine name of the seventhings credential (defined in Phase 1). */
 export const CREDENTIALS_NAME = 'seventhingsApi';
@@ -98,6 +99,7 @@ export async function seventhingsApiRequest(
 	if (options.encoding !== undefined) {
 		requestOptions.encoding = options.encoding;
 	}
+	if ('getExecutionCancelSignal' in this) requestOptions.abortSignal = this.getExecutionCancelSignal();
 
 	try {
 		return await this.helpers.httpRequestWithAuthentication.call(
@@ -106,6 +108,18 @@ export async function seventhingsApiRequest(
 			requestOptions,
 		);
 	} catch (error) {
+		const failure = error as { statusCode?: number; httpCode?: string; response?: { status?: number; statusCode?: number; headers?: unknown }; headers?: unknown };
+		const status = Number(failure.statusCode ?? failure.httpCode ?? failure.response?.statusCode ?? failure.response?.status);
+		if (status === 429) {
+			const delay = retryAfterMilliseconds(failure.response?.headers ?? failure.headers);
+			throw new NodeApiError(this.getNode(), error as JsonObject, {
+				httpCode: '429',
+				message: 'seventhings API rate limit exceeded',
+				description: delay === undefined
+					? 'The request was not retried. Lower Requests Per Minute in the credential or configure a bounded retry in your workflow.'
+					: `The request was not retried. Retry no earlier than ${new Date(Date.now() + delay).toISOString()} (Retry-After: ${Math.ceil(delay / 1000)} seconds).`,
+			});
+		}
 		// n8n throws on non-2xx; surface it as a typed API error. n8n's NodeApiError
 		// already derives a friendly message from the status code (incl. 404/4xx/5xx),
 		// mirroring the Zapier `apiError` mapping.

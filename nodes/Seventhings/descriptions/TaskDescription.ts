@@ -61,12 +61,19 @@ const REMINDER_UNIT_OPTIONS = [
 	{ name: 'Years', value: 'years' },
 ];
 
+const REMINDER_MODE_OPTIONS = [
+	{ name: 'Custom', value: 'custom', description: 'Use Reminder Unit and Reminder Value' },
+	{ name: 'No Reminders', value: 'none', description: 'Send an explicit empty reminder list' },
+	{ name: 'API Default', value: 'default', description: 'Omit reminders from the request' },
+];
+
 /**
  * The "Additional Fields" collection of optional task fields.
  *
- * For Create, the API-required fields (deadline, assignees, reference, reminder)
+ * For Create, the API-required fields (deadline, assignees, reference)
  * live as top-level required inputs, so this collection only holds the genuinely
- * optional ones. For Update every field is optional (we fetch-merge the existing
+ * optional ones. Reminder defaults remain top-level for compatibility. For
+ * Update every field is optional (we fetch-merge the existing
  * record), so the full set is offered here.
  */
 function taskAdditionalFields(operation: 'create' | 'update'): INodeProperties {
@@ -92,6 +99,11 @@ function taskAdditionalFields(operation: 'create' | 'update'): INodeProperties {
 	// top-level there, so they are only added to the collection for Update.
 	if (operation === 'update') {
 		options.unshift(
+			{
+				displayName: 'Reminder Mode', name: 'reminderMode', type: 'options', default: 'custom',
+				options: REMINDER_MODE_OPTIONS,
+				description: 'Leave this field unset to preserve existing reminders',
+			},
 			{
 				displayName: 'Assignee UUIDs',
 				name: 'assignees',
@@ -146,8 +158,8 @@ function taskAdditionalFields(operation: 'create' | 'update'): INodeProperties {
 
 export const taskFields: INodeProperties[] = [
 	// ---- Create -------------------------------------------------------------
-	// The API requires title, a deadline, at least one assignee, a reference and
-	// a reminder on every task, so these are top-level required inputs.
+	// Required task inputs plus legacy custom-reminder defaults; reminders can
+	// now be explicitly disabled or omitted using Reminder Mode.
 	{
 		displayName: 'Title',
 		name: 'title',
@@ -187,6 +199,11 @@ export const taskFields: INodeProperties[] = [
 		displayOptions: { show: { resource: ['task'], operation: ['create'] } },
 	},
 	{
+		displayName: 'Reminder Mode', name: 'reminderMode', type: 'options', default: 'custom',
+		options: REMINDER_MODE_OPTIONS,
+		displayOptions: { show: { resource: ['task'], operation: ['create'] } },
+	},
+	{
 		displayName: 'Reminder Unit',
 		name: 'reminderUnit',
 		type: 'options',
@@ -194,7 +211,7 @@ export const taskFields: INodeProperties[] = [
 		required: true,
 		description: 'The unit of the reminder before the deadline',
 		options: REMINDER_UNIT_OPTIONS,
-		displayOptions: { show: { resource: ['task'], operation: ['create'] } },
+		displayOptions: { show: { resource: ['task'], operation: ['create'], reminderMode: ['custom'] } },
 	},
 	{
 		displayName: 'Reminder Value',
@@ -203,7 +220,7 @@ export const taskFields: INodeProperties[] = [
 		default: 1,
 		required: true,
 		description: 'How many of the reminder unit before the deadline to remind',
-		displayOptions: { show: { resource: ['task'], operation: ['create'] } },
+		displayOptions: { show: { resource: ['task'], operation: ['create'], reminderMode: ['custom'] } },
 	},
 	taskAdditionalFields('create'),
 

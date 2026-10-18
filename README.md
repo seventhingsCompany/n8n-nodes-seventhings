@@ -31,6 +31,7 @@ Manage assets, tasks, rental cases, locations, rooms, files, persons, users, fie
 | Resource | Operations |
 |----------|------------|
 | **Asset** | Create, Update, Get, Get by Barcode, Get History, Get Many, Archive, Unarchive, Delete, Move to Location, Move to Room, Attach File, Detach File |
+| **Catalog Item** | Create, Update, Get, Get Many, Delete |
 | **Task** | Create, Update, Get, Get History, Get Many, Close, Reopen, Delete |
 | **Rental Case** | Create, Update, Get, Get History, Get Many, Delete |
 | **Location** | Create, Update, Get, Get History, Get Many, Delete |
@@ -52,6 +53,10 @@ Notes:
 - **Room** records belong to a **Building** (a Location), selected from a dropdown.
 - **File → Upload** accepts either an upstream node's **binary** data or a public **URL** to download, and returns the uploaded file's UUID — which you can then attach to an asset.
 - **File → Download Data / Download Thumbnail** write binary output to a configurable binary property.
+- **File → Download Thumbnail** accepts optional width and height (both required together, integers from 1–2000). Omit both for the API's 150 × 100 default.
+- **Catalog Item** requires the product catalog feature and permissions. Supply field values as a JSON object, using `catalog_object_` prefixes for object fields. Responses retain the `{uuid, fields}` envelope. **Update is a full replacement:** omitted fields are emptied. Updating/deleting catalog items does not change assets already created from them.
+- **Task → Create** offers **Reminder Mode**: Custom (existing behavior), No Reminders (sends `[]`), or API Default (omits the field). Update preserves reminders unless overridden in Additional Fields. A custom value of `0` reminds on the deadline.
+- **Rental Case → Create → Timing and Reminders** supports Full Day, Issue At and Due At, and disabling either reminder. For timed rentals, supply both timestamps with timezones and a return time after pickup; the return time is exclusive. Omit Full Day to infer the type from timestamps. The existing date inputs remain required; the API derives dates from timed timestamps. Update offers the same options, preserves existing times for unrelated edits, and lets the API move those times when only dates change. Task and rental updates retain attachments.
 - **Person** Create/Update uses your tenant's person field definitions dynamically, matching the SDK's flexible field map.
 - **Field Definition** operations are schema administration operations for Asset, Room and Person templates.
 - **Circularity Hub** operations cover SDK item/order workflows, category and rest-price suggestions, and adding assets to the hub.
@@ -92,6 +97,14 @@ Create a **Seventhings API** credential with:
 - **Client ID** — from Integrations → Rest API.
 
 Authentication uses a session bearer token obtained via a password grant. n8n fetches and caches the token automatically and refreshes it when it expires, so you only ever enter the four fields above. Use **Test** to confirm the connection.
+
+### Rate limiting
+
+**Requests Per Minute** defaults to **200** (one request every 300 ms, no bursts). Set it to `0` to disable throttling, or lower it for your tenant. Existing credentials without this setting also default to 200. The authentication method is unchanged; OAuth authorization-code/PKCE is not included, matching Go SDK v1.5.1.
+
+Requests using the same subdomain, username and client ID share a FIFO limiter within each Node.js process. This includes password login, credential tests, action/polling requests, dropdowns, uploads and downloads; public source-URL downloads are not seventhings requests and are not throttled. Execution cancellation interrupts queued action requests. Separate n8n workers/processes have independent limits: this is not a distributed, tenant-wide quota, so lower each worker's setting to allow for other traffic.
+
+HTTP 429 errors are **not automatically retried**, including writes. A valid `Retry-After` (seconds or HTTP date) is surfaced in the error details; otherwise the error suggests reducing the rate or using bounded workflow retries. Respect the indicated delay and decide whether replaying the operation is safe.
 
 ## Compatibility
 
@@ -141,6 +154,8 @@ The suites in `tests/` adapt the Zapier integration's API-contract scenarios to 
 These are not live n8n workflow tests: credential refresh orchestration and end-to-end API behavior still require a configured n8n instance.
 
 `tests/sdk-v1.4.test.js` covers the nine new endpoints from API spec `v0.19571_89862c247_20260915`: barcode escaping, all six history routes, pagination, untouched event payloads, template discovery, ordered PDF requests, binary output, validation and API errors. It also covers person sorting and UUID response compatibility.
+
+`tests/sdk-v1.5.test.js` covers the October API catalog routes, timed rentals, optional task reminders, attachment/reminder preservation, custom thumbnails, FIFO throttling/cancellation, and `Retry-After` parsing. These tests are offline. Live writes and end-to-end n8n credential refresh still need manual verification against an October-capable tenant.
 
 For manual verification, run `npm run dev`, open the local n8n instance, configure a **Seventhings API** credential, and try the barcode/history and PDF workflows above. The new operations require a tenant API exposing the September 2026 endpoints. Verify a generated PDF opens correctly and contains assets in the requested order.
 

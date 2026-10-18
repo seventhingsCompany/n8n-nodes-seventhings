@@ -24,7 +24,7 @@ import type {
 	ICredentialDataDecryptedObject,
 	ICredentialTestRequest,
 	ICredentialType,
-	IAuthenticateGeneric,
+	IAuthenticate,
 	IDataObject,
 	IHttpRequestHelper,
 	Icon,
@@ -32,6 +32,7 @@ import type {
 } from 'n8n-workflow';
 
 import { buildBaseUrl, validateEmail } from '../nodes/Seventhings/transport/validators';
+import { waitForRateLimit } from '../nodes/Seventhings/transport/rateLimit';
 
 export class SeventhingsApi implements ICredentialType {
 	name = 'seventhingsApi';
@@ -84,6 +85,14 @@ export class SeventhingsApi implements ICredentialType {
 				'Your client ID, found in seventhings under Integrations → Rest API',
 		},
 		{
+			displayName: 'Requests Per Minute',
+			name: 'requestsPerMinute',
+			type: 'number',
+			default: 200,
+			typeOptions: { minValue: 0, numberPrecision: 0 },
+			description: 'Evenly spaced request limit shared by this connection in each n8n process. Set 0 to disable. Separate workers have independent limits.',
+		},
+		{
 			// Hidden, cached bearer token. n8n only runs `preAuthentication` (to
 			// fetch and cache this token) when it finds a property that is BOTH
 			// `type: 'hidden'` AND `expirable: true` — a plain `string` here makes
@@ -122,6 +131,7 @@ export class SeventhingsApi implements ICredentialType {
 			grant_type: 'password',
 		});
 
+		await waitForRateLimit(credentials);
 		const response = (await this.helpers.httpRequest({
 			method: 'POST',
 			url: `${baseUrl}/customer-api/v1/auth_token`,
@@ -140,13 +150,16 @@ export class SeventhingsApi implements ICredentialType {
 		return { sessionToken: accessToken };
 	}
 
-	authenticate: IAuthenticateGeneric = {
-		type: 'generic',
-		properties: {
-			headers: {
-				Authorization: '=Bearer {{$credentials.sessionToken}}',
-			},
-		},
+	authenticate: IAuthenticate = async (credentials, requestOptions) => {
+		// Throttle at actual authentication injection, not before n8n's helper:
+		// first-login and 401 refresh calls must finish before this request gets
+		// its own slot. This also covers n8n's credential test and HTTP Request node.
+		const signal = requestOptions.abortSignal instanceof AbortSignal ? requestOptions.abortSignal : undefined;
+		await waitForRateLimit(credentials, signal);
+		return {
+			...requestOptions,
+			headers: { ...requestOptions.headers, Authorization: `Bearer ${credentials.sessionToken}` },
+		};
 	};
 
 	test: ICredentialTestRequest = {
